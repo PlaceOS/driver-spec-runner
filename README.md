@@ -7,9 +7,9 @@ A spec runner for [PlaceOS drivers](https://github.com/PlaceOS/drivers).
 
 ## Development
 
-To test the spec runner is working: `./test`
+To test the spec runner: `./test`
 
-[See here](frontend/README.md) for further detail on the developing the interface.
+[See here](frontend/README.md) for further detail on developing the interface.
 
 To spin up the test harness in your browser, follow [the steps here](https://github.com/PlaceOS/drivers#development).
 
