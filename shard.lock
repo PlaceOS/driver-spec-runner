@@ -1,0 +1,123 @@
+# NOTICE: This lockfile contains some overrides from shard.override.yml
+version: 2.0
+shards:
+  action-controller:
+    git: https://github.com/spider-gazelle/action-controller.git
+    version: 4.5.0
+
+  connect-proxy:
+    git: https://github.com/spider-gazelle/connect-proxy.git
+    version: 1.4.0
+
+  crc16:
+    git: https://github.com/maiha/crc16.cr.git
+    version: 0.1.0
+
+  cron_parser:
+    git: https://github.com/kostya/cron_parser.git
+    version: 0.4.0
+
+  debug:
+    git: https://github.com/sija/debug.cr.git
+    version: 2.0.1
+
+  dtls:
+    git: https://github.com/spider-gazelle/crystal-dtls.git
+    version: 0.9.0
+
+  etcd:
+    git: https://github.com/place-labs/crystal-etcd.git
+    version: 1.2.4
+
+  exec_from:
+    git: https://github.com/place-labs/exec_from.git
+    version: 1.3.0
+
+  future:
+    git: https://github.com/crystal-community/future.cr.git
+    version: 1.0.0
+
+  habitat:
+    git: https://github.com/luckyframework/habitat.git
+    version: 0.4.7
+
+  hound-dog:
+    git: https://github.com/place-labs/hound-dog.git
+    version: 2.9.0
+
+  ipaddress:
+    git: https://github.com/sija/ipaddress.cr.git
+    version: 0.2.1
+
+  log_helper:
+    git: https://github.com/spider-gazelle/log_helper.git
+    version: 1.0.3
+
+  lucky_router:
+    git: https://github.com/luckyframework/lucky_router.git
+    version: 0.4.2
+
+  murmur3:
+    git: https://github.com/aca-labs/murmur3.git
+    version: 0.1.1+git.commit.7cbe25c0ca8d052c9d98c377c824dcb0e038c790
+
+  pinger:
+    git: https://github.com/spider-gazelle/pinger.git
+    version: 1.1.1
+
+  placeos-compiler:
+    git: https://github.com/placeos/compiler.git
+    version: 3.5.0
+
+  placeos-driver:
+    git: https://github.com/placeos/driver.git
+    version: 5.3.5
+
+  pool:
+    git: https://github.com/ysbaddaden/pool.git
+    version: 0.2.4
+
+  promise:
+    git: https://github.com/spider-gazelle/promise.git
+    version: 2.2.2
+
+  redis:
+    git: https://github.com/maiha/crystal-redis.git
+    version: 2.6.0
+
+  redis-cluster:
+    git: https://github.com/caspiano/redis-cluster.cr.git
+    version: 0.8.4
+
+  rendezvous-hash:
+    git: https://github.com/caspiano/rendezvous-hash.git
+    version: 0.3.1
+
+  retriable: # Overridden
+    git: https://github.com/sija/retriable.cr.git
+    version: 0.2.3
+
+  rwlock:
+    git: https://github.com/spider-gazelle/readers-writer.git
+    version: 1.0.7
+
+  simple_retry:
+    git: https://github.com/spider-gazelle/simple_retry.git
+    version: 1.1.1
+
+  ssh2:
+    git: https://github.com/spider-gazelle/ssh2.cr.git
+    version: 1.5.2
+
+  tasker:
+    git: https://github.com/spider-gazelle/tasker.git
+    version: 2.0.5
+
+  tokenizer:
+    git: https://github.com/spider-gazelle/tokenizer.git
+    version: 1.1.1
+
+  ulid:
+    git: https://github.com/place-labs/ulid.git
+    version: 0.1.2
+

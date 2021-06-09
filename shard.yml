@@ -1,0 +1,24 @@
+name: placeos-driver-spec-runner
+version: 2.2.0
+
+# compile target
+targets:
+  test-harness:
+    main: src/app.cr
+  report:
+    main: src/report.cr
+
+dependencies:
+  action-controller:
+    github: spider-gazelle/action-controller
+    version: ~> 4.4
+
+  exec_from:
+    github: place-labs/exec_from
+
+  pinger:
+    github: spider-gazelle/pinger
+
+  placeos-compiler:
+    github: placeos/compiler
+    version: ~> 3.5
