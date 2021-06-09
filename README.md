@@ -1,15 +1,17 @@
 # PlaceOS Driver Spec Runner
 
-A spec runner for PlaceOS drivers
+[![Build](https://github.com/PlaceOS/driver-spec-runner/actions/workflows/build.yml/badge.svg)](https://github.com/PlaceOS/driver-spec-runner/actions/workflows/build.yml)
+[![CI](https://github.com/PlaceOS/driver-spec-runner/actions/workflows/ci.yml/badge.svg)](https://github.com/PlaceOS/driver-spec-runner/actions/workflows/ci.yml)
+
+A spec runner for [PlaceOS drivers](https://github.com/PlaceOS/drivers).
 
 ## Development
 
-To test the spec runner is working:
-``` ./test ```
+To test the spec runner is working: `./test`
 
-[See here](frontend/README.md) for further detail on the interface.
+[See here](frontend/README.md) for further detail on the developing the interface.
 
-To spin up the test harness in browser follow the steps in Development in the [drivers](https://github.com/PlaceOS/drivers) repo
+To spin up the test harness in your browser, follow [the steps here](https://github.com/PlaceOS/drivers#development).
 
 ## Contributing
 
@@ -18,4 +20,3 @@ To spin up the test harness in browser follow the steps in Development in the [d
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
-
