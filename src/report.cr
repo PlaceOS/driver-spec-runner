@@ -5,7 +5,7 @@ require "colorize"
 require "option_parser"
 
 host = "localhost"
-port = 6000
+port = 8080
 repo = ""
 
 OptionParser.parse(ARGV.dup) do |parser|
