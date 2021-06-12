@@ -7,6 +7,7 @@ require "option_parser"
 host = "localhost"
 port = 8080
 repo = ""
+no_colour = false
 
 OptionParser.parse(ARGV.dup) do |parser|
   parser.banner = "Usage: #{PROGRAM_NAME} [arguments]"
@@ -14,13 +15,14 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("-h HOST", "--host=HOST", "Specifies the server host") { |h| host = h }
   parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| port = p.to_i }
   parser.on("-r REPO", "--repo=REPO", "Specifies the repository to report on") { |r| repo = r }
+  parser.on("--no-colour", "Removes colour from the report") { no_colour = true }
 end
 
 puts "running report against #{host}:#{port} (#{repo.blank? ? "default" : repo} repository)"
 
-# ================
-# driver discovery
-# ================
+# Driver discovery
+###################################################################################################
+
 print "discovering drivers... "
 
 response = HTTP::Client.get "http://#{host}:#{port}/build"
@@ -31,11 +33,10 @@ end
 
 drivers = Array(String).from_json(response.body)
 puts "found #{drivers.size}"
-# ================
 
-# ==============
-# spec discovery
-# ==============
+# Spec discovery
+###################################################################################################
+
 print "locating specs... "
 
 response = HTTP::Client.get "http://#{host}:#{port}/test"
@@ -46,7 +47,8 @@ end
 
 specs = Array(String).from_json(response.body)
 puts "found #{specs.size}"
-# ==============
+
+###################################################################################################
 
 compile_only = [] of String
 failed = [] of String
@@ -56,7 +58,9 @@ timeout = [] of String
 tested = 0
 success = 0
 
-# detect ctrl-c, complete current work and output report early
+# Detect ctrl-c, complete current work and output report early
+###################################################################################################
+
 skip_remaining = false
 Signal::INT.trap do |signal|
   skip_remaining = true
@@ -73,7 +77,7 @@ drivers.each do |driver|
   end
 
   tested += 1
-  print "testing #{driver}..."
+  print "testing #{driver}... "
 
   params = URI::Params.new({
     "driver" => [driver],
@@ -89,22 +93,18 @@ drivers.each do |driver|
     response = client.post(uri.to_s)
     if response.success?
       success += 1
-      puts " passed".colorize.green
+      puts green("passed")
     else
-      # keep travis alive
-      print " "
-
-      # a spec not passing isn't as critical as a driver not compiling
-      if client.post("/build?driver=#{driver}").success?
-        puts "failed".colorize.red
+      # A spec not passing isn't as critical as a driver not compiling
+      if build?(driver, client)
+        puts red("failed")
         failed << driver
       else
-        puts "failed to compile!".colorize.red
         no_compile << driver
       end
     end
   rescue IO::TimeoutError
-    puts "failed with timeout".colorize.red
+    puts red("failed with timeout")
     timeout << driver
   end
 end
@@ -116,24 +116,39 @@ compile_only.each do |driver|
   client = HTTP::Client.new(host, port)
   client.read_timeout = 6.minutes
   begin
-    response = client.post("/build?driver=#{driver}")
-    if response.success?
+    if build?(driver, client)
       success += 1
-      puts "builds".colorize.green
+      puts green("builds")
     else
-      puts "failed to compile!".colorize.red
-      puts "\n#{response.body}\n"
       no_compile << driver
     end
   rescue IO::TimeoutError
-    puts "failed with timeout".colorize.red
+    puts red("failed with timeout")
     timeout << driver
   end
 end
 
-# ==============
-# output report
-# ==============
+def build?(driver : String, client)
+  response = client.post("/build?driver=#{driver}")
+  response.success?.tap do |built|
+    unless built
+      puts red("failed to compile!")
+      puts "\n#{response.body}\n"
+    end
+  end
+end
+
+def red(string)
+  no_colour ? string : string.colorize.red
+end
+
+def green(string)
+  no_colour ? string : string.colorize.green
+end
+
+# Output report
+###################################################################################################
+
 puts "\n\nspec failures:\n * #{failed.join("\n * ")}" if !failed.empty?
 puts "\n\nspec timeouts:\n * #{timeout.join("\n * ")}" if !timeout.empty?
 puts "\n\nfailed to compile:\n * #{no_compile.join("\n * ")}" if !no_compile.empty?
