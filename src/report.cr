@@ -1,31 +1,33 @@
-require "uri"
+require "colorize"
 require "http"
 require "json"
-require "colorize"
 require "option_parser"
+require "uri"
 
-host = "localhost"
-port = 8080
-repo = ""
-no_colour = false
+module Settings
+  class_property host = "localhost"
+  class_property port = 8080
+  class_property repo = ""
+  class_property? no_colour = false
+end
 
 OptionParser.parse(ARGV.dup) do |parser|
   parser.banner = "Usage: #{PROGRAM_NAME} [arguments]"
 
-  parser.on("-h HOST", "--host=HOST", "Specifies the server host") { |h| host = h }
-  parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| port = p.to_i }
-  parser.on("-r REPO", "--repo=REPO", "Specifies the repository to report on") { |r| repo = r }
-  parser.on("--no-colour", "Removes colour from the report") { no_colour = true }
+  parser.on("-h HOST", "--host=HOST", "Specifies the server host") { |h| Settings.host = h }
+  parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| Settings.port = p.to_i }
+  parser.on("-r REPO", "--repo=REPO", "Specifies the repository to report on") { |r| Settings.repo = r }
+  parser.on("--no-colour", "Removes colour from the report") { Settings.no_colour = true }
 end
 
-puts "running report against #{host}:#{port} (#{repo.blank? ? "default" : repo} repository)"
+puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? "default" : Settings.repo} repository)"
 
 # Driver discovery
 ###################################################################################################
 
 print "discovering drivers... "
 
-response = HTTP::Client.get "http://#{host}:#{port}/build"
+response = with_runner_client &.get("/build")
 if !response.success?
   puts "failed to obtain driver list"
   exit 1
@@ -39,7 +41,7 @@ puts "found #{drivers.size}"
 
 print "locating specs... "
 
-response = HTTP::Client.get "http://#{host}:#{port}/test"
+response = with_runner_client &.get("/test")
 if !response.success?
   puts "failed to obtain spec list"
   exit 2
@@ -84,28 +86,29 @@ drivers.each do |driver|
     "spec"   => [spec],
     "force"  => ["true"],
   })
-  params["repository"] = repo unless repo.blank?
+  params["repository"] = Settings.repo unless Settings.repo.blank?
   uri = URI.new(path: "/test", query: params)
 
-  client = HTTP::Client.new(host, port)
-  client.read_timeout = 6.minutes
-  begin
-    response = client.post(uri.to_s)
-    if response.success?
-      success += 1
-      puts green("passed")
-    else
-      # A spec not passing isn't as critical as a driver not compiling
-      if build?(driver, client)
-        puts red("failed")
-        failed << driver
+  with_runner_client do |client|
+    client.read_timeout = 6.minutes
+    begin
+      response = client.post(uri.to_s)
+      if response.success?
+        success += 1
+        puts green("passed")
       else
-        no_compile << driver
+        # A spec not passing isn't as critical as a driver not compiling
+        if build?(driver, client)
+          puts red("failed")
+          failed << driver
+        else
+          no_compile << driver
+        end
       end
+    rescue IO::TimeoutError
+      puts red("failed with timeout")
+      timeout << driver
     end
-  rescue IO::TimeoutError
-    puts red("failed with timeout")
-    timeout << driver
   end
 end
 
@@ -113,18 +116,39 @@ compile_only.each do |driver|
   break if skip_remaining
 
   print "compile #{driver}... "
-  client = HTTP::Client.new(host, port)
-  client.read_timeout = 6.minutes
-  begin
-    if build?(driver, client)
-      success += 1
-      puts green("builds")
-    else
-      no_compile << driver
+  with_runner_client do |client|
+    client.read_timeout = 6.minutes
+    begin
+      if build?(driver, client)
+        success += 1
+        puts green("builds")
+      else
+        no_compile << driver
+      end
+    rescue IO::TimeoutError
+      puts red("failed with timeout")
+      timeout << driver
     end
-  rescue IO::TimeoutError
-    puts red("failed with timeout")
-    timeout << driver
+  end
+end
+
+# Output report
+###################################################################################################
+
+puts "\n\nspec failures:\n * #{failed.join("\n * ")}" if !failed.empty?
+puts "\n\nspec timeouts:\n * #{timeout.join("\n * ")}" if !timeout.empty?
+puts "\n\nfailed to compile:\n * #{no_compile.join("\n * ")}" if !no_compile.empty?
+puts "\n\nout of #{tested} drivers..."
+puts "* #{failed.size + no_compile.size} failures"
+puts "* #{timeout.size} timeouts"
+puts "* #{compile_only.size} without spec"
+
+# Helpers
+###################################################################################################
+
+def with_runner_client
+  HTTP::Client.new("http://#{Settings.host}:#{Settings.port}") do |client|
+    yield client
   end
 end
 
@@ -139,17 +163,9 @@ def build?(driver : String, client)
 end
 
 def red(string)
-  no_colour ? string : string.colorize.red
+  Settings.no_colour? ? string : string.colorize.red
 end
 
 def green(string)
-  no_colour ? string : string.colorize.green
+  Settings.no_colour? ? string : string.colorize.green
 end
-
-# Output report
-###################################################################################################
-
-puts "\n\nspec failures:\n * #{failed.join("\n * ")}" if !failed.empty?
-puts "\n\nspec timeouts:\n * #{timeout.join("\n * ")}" if !timeout.empty?
-puts "\n\nfailed to compile:\n * #{no_compile.join("\n * ")}" if !no_compile.empty?
-puts "\n\n#{tested} drivers, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
