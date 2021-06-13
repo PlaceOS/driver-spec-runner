@@ -138,7 +138,7 @@ end
 puts "\n\nspec failures:\n * #{failed.join("\n * ")}" if !failed.empty?
 puts "\n\nspec timeouts:\n * #{timeout.join("\n * ")}" if !timeout.empty?
 puts "\n\nfailed to compile:\n * #{no_compile.join("\n * ")}" if !no_compile.empty?
-puts "\n\nout of #{tested} drivers..."
+puts "\n\n* #{tested} tested"
 puts "* #{failed.size + no_compile.size} failures"
 puts "* #{timeout.size} timeouts"
 puts "* #{compile_only.size} without spec"
