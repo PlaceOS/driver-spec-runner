@@ -21,17 +21,17 @@ WORKDIR /app
 RUN apk add --no-cache \
   ca-certificates \
   gdb \
+  bash \
   iputils \
   libssh2 libssh2-dev libssh2-static \
-  tzdata \
   yaml-static
+
+RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing watchexec
 
 # Add trusted CAs for communicating with external services
 RUN update-ca-certificates
 
 RUN mkdir -p /app/bin/drivers
-
-RUN apk add --no-cache bash
 
 COPY ./shard.yml /app/shard.yml
 COPY ./shard.override.yml /app/shard.override.yml
