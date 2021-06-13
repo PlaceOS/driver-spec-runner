@@ -14,15 +14,6 @@ module PlaceOS::Drivers::Api
         result = curl("POST", "/test?repository=private_drivers&driver=drivers/place/private_helper.cr&spec=drivers/place/private_helper_spec.cr&force=true")
         result.status_code.should eq(200)
       end
-
-      it "should have expected output using private_drivers repo" do
-        io = IO::Memory.new
-        Process.run("crystal", {"run", "./src/report.cr", "-p", "6000"}, output: io)
-        output = io.to_s
-        output.should contain("1 drivers")
-        output.should contain("0 failures")
-        output.should contain("0 without spec")
-      end
     end
   end
 end
