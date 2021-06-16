@@ -147,7 +147,7 @@ puts "* #{compile_only.size} without spec"
 ###################################################################################################
 
 def with_runner_client
-  HTTP::Client.new("http://#{Settings.host}:#{Settings.port}") do |client|
+  HTTP::Client.new(Settings.host, Settings.port) do |client|
     yield client
   end
 end
