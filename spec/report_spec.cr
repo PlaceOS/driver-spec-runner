@@ -7,10 +7,10 @@ module PlaceOS::Drivers
         io = IO::Memory.new
         Process.run("crystal", {"run", "./src/report.cr", "--", "-p 6000", "--no-colour"}, output: io)
         output = io.to_s
-        output.should contain("* 1 tested")
-        output.should contain("* 0 failures")
-        output.should contain("* 0 timeouts")
-        output.should contain("* 0 without spec")
+        output.should contain("1 drivers")
+        output.should contain("0 failures")
+        output.should contain("0 timeouts")
+        output.should contain("0 without spec")
       end
     end
   end
