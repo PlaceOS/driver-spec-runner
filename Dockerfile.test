@@ -42,9 +42,6 @@ COPY ./src /app/src
 COPY ./spec /app/spec
 COPY --from=frontend-build /frontend/dist/driver-spec-runner /app/www
 
-# Build src
-RUN shards build --error-trace --release --production --ignore-crystal-version
-
 COPY scripts/* /app/scripts/
 
 CMD /app/scripts/entrypoint.sh
