@@ -5,7 +5,8 @@ FROM node:${node_version}-alpine as frontend-build
 WORKDIR /frontend
 COPY /frontend/package*.json  /frontend
 
-RUN npm install -g @angular/cli @angular-builders/custom-webpack && npm clean-install
+RUN npm install -g @angular/cli @angular-builders/custom-webpack
+RUN npm clean-install
 
 # Copy source after install dependencies
 COPY frontend /frontend
@@ -19,15 +20,15 @@ FROM crystallang/crystal:${crystal_version}-alpine
 WORKDIR /app
 
 # Install the latest version of
-# - libssh2
 # - [GDB debugger](https://sourceware.org/gdb/current/onlinedocs/gdb/)
-# - ping (via iputils)
+# - libssh2
 # - libyaml
+# - ping (via iputils)
 RUN apk add --update --no-cache \
   ca-certificates \
   gdb \
   iputils \
-  libssh2 libssh2-dev libssh2-static \
+  libssh2-static \
   tzdata \
   yaml-static
 
@@ -45,10 +46,12 @@ RUN shards install --production --ignore-crystal-version
 COPY ./src /app/src
 COPY --from=frontend-build /frontend/dist/driver-spec-runner /app/www
 
-ENV PATH "$PATH:/app/bin"
+ENV PATH="$PATH:/app/bin"
 
 # Build App
 RUN shards build --error-trace --release --production --ignore-crystal-version
+
+RUN rm -r lib src
 
 # Run the app binding on port 8080
 EXPOSE 8080
