@@ -1,14 +1,15 @@
 require "colorize"
+require "griffith"
 require "http"
 require "json"
 require "option_parser"
 require "uri"
+require "atomic"
 
 module Settings
   class_property host = "localhost"
   class_property port = 8080
   class_property repo = ""
-  class_property? no_colour = false
 end
 
 OptionParser.parse(ARGV.dup) do |parser|
@@ -17,7 +18,6 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("-h HOST", "--host=HOST", "Specifies the server host") { |h| Settings.host = h }
   parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| Settings.port = p.to_i }
   parser.on("-r REPO", "--repo=REPO", "Specifies the repository to report on") { |r| Settings.repo = r }
-  parser.on("--no-colour", "Removes colour from the report") { Settings.no_colour = true }
 end
 
 puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? "default" : Settings.repo} repository)"
@@ -52,97 +52,144 @@ puts "found #{specs.size}"
 
 ###################################################################################################
 
-compile_only = [] of String
-failed = [] of String
-no_compile = [] of String
-timeout = [] of String
+record Datum, state : State, value : String do
+  enum State
+    CompileOnly
+    Failed
+    NoCompile
+    Timeout
+  end
 
-tested = 0
-success = 0
+  forward_missing_to state
 
-# Detect ctrl-c, complete current work and output report early
+  {% for state in State.constants %}
+    # Create a `State::{{ state }}`
+    def self.{{ state.underscore }}(value : String)
+      new State::{{ state }}, value
+    end
+  {% end %}
+end
+
 ###################################################################################################
 
-skip_remaining = false
+Griffith.config do |c|
+  # c.running_message "waiting"
+end
+
+tasks_lock = Mutex.new
+tasks = [] of Griffith::Task
+state_lock = Mutex.new
+state = [] of Datum
+
+record CompileOnly, driver : String, task : Griffith::Task
+record Test, driver : String, spec : String, task : Griffith::Task
+
+alias Build = CompileOnly | Test
+
+build_channel = Channel(Build).new(4)
+test_channel = Channel(Test).new(10)
+
 Signal::INT.trap do |signal|
-  skip_remaining = true
+  build_channel.close
+  test_channel.close
+  tasks_lock.synchronize { tasks.each &.fail("cancelled") }
   signal.ignore
 end
 
-drivers.each do |driver|
-  break if skip_remaining
+success = Atomic(Int32).new(0)
+tested = Atomic(Int32).new(0)
 
-  spec = "#{driver.rchop(".cr")}_spec.cr"
-  if !specs.includes? spec
-    compile_only << driver
-    next
-  end
-
-  tested += 1
-  print "testing #{driver}... "
-
-  params = URI::Params.new({
-    "driver" => [driver],
-    "spec"   => [spec],
-    "force"  => ["true"],
-  })
-  params["repository"] = Settings.repo unless Settings.repo.blank?
-  uri = URI.new(path: "/test", query: params)
-
-  with_runner_client do |client|
-    client.read_timeout = 6.minutes
-    begin
-      response = client.post(uri.to_s)
-      if response.success?
-        success += 1
-        puts green("passed")
-      else
-        # A spec not passing isn't as critical as a driver not compiling
-        if build?(driver, client)
-          puts red("failed")
-          failed << driver
+# Build the drivers
+spawn do
+  loop do
+    break unless build = build_channel.receive?
+    build.task.details("compiling")
+    with_runner_client do |client|
+      client.read_timeout = 6.minutes
+      begin
+        if build?(build, client)
+          if build.is_a?(Test)
+            build.task.details("builds")
+            test_channel.send(build)
+          else
+            success.add(1)
+            build.task.done("builds")
+          end
         else
-          no_compile << driver
+          state_lock.synchronize { state << Datum.no_compile(build.driver) }
         end
+      rescue IO::TimeoutError
+        build.task.fail("timeout")
+        state_lock.synchronize { state << Datum.timeout(build.driver) }
       end
-    rescue IO::TimeoutError
-      puts red("failed with timeout")
-      timeout << driver
     end
+    tasks_lock.synchronize { tasks.delete(build.task) } if build.is_a? CompileOnly
   end
 end
 
-compile_only.each do |driver|
-  break if skip_remaining
+# Test the drivers
+spawn do
+  loop do
+    break unless build = test_channel.receive?
+    build.task.done("testing")
+    tested.add(1)
 
-  print "compile #{driver}... "
-  with_runner_client do |client|
-    client.read_timeout = 6.minutes
-    begin
-      if build?(driver, client)
-        success += 1
-        puts green("builds")
-      else
-        no_compile << driver
+    params = URI::Params.new({
+      "driver" => [build.driver],
+      "spec"   => [build.spec],
+      "force"  => ["true"],
+    })
+
+    params["repository"] = Settings.repo unless Settings.repo.blank?
+    uri = URI.new(path: "/test", query: params)
+
+    with_runner_client do |client|
+      client.read_timeout = 6.minutes
+      begin
+        if client.post(uri.to_s).success?
+          success.add(1)
+          build.task.done("done")
+        else
+          build.task.fail("failed")
+        end
+      rescue IO::TimeoutError
+        build.task.fail("timeout")
+        state_lock.synchronize { state << Datum.timeout(build.driver) }
       end
-    rescue IO::TimeoutError
-      puts red("failed with timeout")
-      timeout << driver
     end
+    tasks_lock.synchronize { tasks.delete(build.task) }
   end
+end
+
+drivers.each do |driver|
+  task = Griffith.create_task(driver)
+  tasks_lock.synchronize { tasks << task }
+  spec = "#{driver.rchop(".cr")}_spec.cr"
+  build = if !specs.includes? spec
+            CompileOnly.new(driver, task)
+          else
+            Test.new(driver, spec, task)
+          end
+
+  build_channel.send(build) rescue nil
 end
 
 # Output report
 ###################################################################################################
+
+failed = state.select &.failed?
+timeout = state.select &.timeout?
+no_compile = state.select &.no_compile?
+compile_only = state.select &.compile_only?
 
 puts "\n\nspec failures:\n * #{failed.join("\n * ")}" if !failed.empty?
 puts "\n\nspec timeouts:\n * #{timeout.join("\n * ")}" if !timeout.empty?
 puts "\n\nfailed to compile:\n * #{no_compile.join("\n * ")}" if !no_compile.empty?
 result_string = "\n\n#{tested} drivers, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
 if timeout.empty? && failed.empty? && no_compile.empty?
-  puts green(result_string)
+  puts result_string
 else
-  puts red(result_string)
+  puts result_string
 end
 
 # Helpers
@@ -154,20 +201,12 @@ def with_runner_client
   end
 end
 
-def build?(driver : String, client)
-  response = client.post("/build?driver=#{driver}")
+def build?(build : Build, client)
+  response = client.post("/build?driver=#{build.driver}")
   response.success?.tap do |built|
     unless built
-      puts red("failed to compile!")
-      puts "\n#{response.body}\n"
+      build.task.fail("failed to compile!")
+      build.task.details("\n#{response.body}\n")
     end
   end
-end
-
-def red(string)
-  Settings.no_colour? ? string : string.colorize.red
-end
-
-def green(string)
-  Settings.no_colour? ? string : string.colorize.green
 end
