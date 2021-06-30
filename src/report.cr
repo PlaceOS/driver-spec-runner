@@ -184,9 +184,9 @@ puts "\n\nspec timeouts:\n * #{timeout.join("\n * ")}" if !timeout.empty?
 puts "\n\nfailed to compile:\n * #{no_compile.join("\n * ")}" if !no_compile.empty?
 result_string = "\n\n#{tested.lazy_get} drivers, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
 if timeout.empty? && failed.empty? && no_compile.empty?
-  puts result_string
+  puts result_string.colorize.green
 else
-  puts result_string
+  puts result_string.colorize.red
 end
 
 # Helpers
