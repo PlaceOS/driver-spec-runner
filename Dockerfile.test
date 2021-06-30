@@ -12,7 +12,6 @@ COPY frontend /frontend
 
 RUN npx ng build --prod
 
-
 FROM crystallang/crystal:${crystal_version}-alpine
 
 WORKDIR /app
