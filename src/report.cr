@@ -20,7 +20,7 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("-r REPO", "--repo=REPO", "Specifies the repository to report on") { |r| Settings.repo = r }
 end
 
-puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? "default" : Settings.repo} repository)"
+puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? "default " : Settings.repo + " "}repository)"
 
 # Driver discovery
 ###################################################################################################
@@ -96,7 +96,6 @@ Signal::INT.trap do |signal|
   signal.ignore
 end
 
-success = Atomic(Int32).new(0)
 tested = Atomic(Int32).new(0)
 
 # Build the drivers
@@ -112,7 +111,6 @@ spawn do
             build.task.details("builds")
             test_channel.send(build)
           else
-            success.add(1)
             build.task.done("builds")
           end
         else
@@ -147,7 +145,6 @@ spawn do
       client.read_timeout = 6.minutes
       begin
         if client.post(uri.to_s).success?
-          success.add(1)
           build.task.done("done")
         else
           build.task.fail("failed")
@@ -185,7 +182,7 @@ compile_only = state.select &.compile_only?
 puts "\n\nspec failures:\n * #{failed.join("\n * ")}" if !failed.empty?
 puts "\n\nspec timeouts:\n * #{timeout.join("\n * ")}" if !timeout.empty?
 puts "\n\nfailed to compile:\n * #{no_compile.join("\n * ")}" if !no_compile.empty?
-result_string = "\n\n#{tested} drivers, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
+result_string = "\n\n#{tested.lazy_get} drivers, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
 if timeout.empty? && failed.empty? && no_compile.empty?
   puts result_string
 else
