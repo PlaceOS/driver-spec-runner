@@ -22,7 +22,7 @@ RUN apk add --no-cache \
   gdb \
   bash \
   iputils \
-  libssh2 libssh2-dev libssh2-static \
+  libssh2-static \
   yaml-static
 
 RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing watchexec
