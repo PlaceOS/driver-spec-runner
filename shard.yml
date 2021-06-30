@@ -16,6 +16,9 @@ dependencies:
   exec_from:
     github: place-labs/exec_from
 
+  griffith:
+    github: gtramontina/griffith.cr
+
   pinger:
     github: spider-gazelle/pinger
 

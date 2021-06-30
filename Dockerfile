@@ -10,6 +10,7 @@ RUN npm install -g @angular/cli @angular-builders/custom-webpack && npm clean-in
 # Copy source after install dependencies
 COPY frontend /frontend
 
+# Build the frontend
 RUN npx ng build --prod
 
 ###########################
@@ -17,8 +18,12 @@ RUN npx ng build --prod
 FROM crystallang/crystal:${crystal_version}-alpine
 WORKDIR /app
 
-# Install the latest version of LibSSH2 and the GDB debugger
-RUN apk add --no-cache \
+# Install the latest version of
+# - libssh2
+# - [GDB debugger](https://sourceware.org/gdb/current/onlinedocs/gdb/)
+# - ping (via iputils)
+# - libyaml
+RUN apk add --update --no-cache \
   ca-certificates \
   gdb \
   iputils \
