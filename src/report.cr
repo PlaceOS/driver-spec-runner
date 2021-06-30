@@ -198,7 +198,7 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("-r REPO", "--repo=REPO", "Specifies the repository to report on") { |r| Settings.repo = r }
 end
 
-puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? "default " : Settings.repo + " "}repository)"
+puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? Settings.repo + " " : "default "} repository)"
 
 # Driver discovery
 
