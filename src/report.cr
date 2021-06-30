@@ -69,6 +69,7 @@ module PlaceOS::Drivers
             if unit.is_a?(Test)
               unit.task.details("builds")
               test_channel.send(unit)
+              return
             else
               unit.task.done("builds")
             end
@@ -82,7 +83,8 @@ module PlaceOS::Drivers
           state_lock.synchronize { state << Datum.timeout(unit.driver) }
         end
       end
-      mark_finished(unit) if unit.is_a? CompileOnly
+
+      mark_finished(unit)
     end
 
     def test(unit)
