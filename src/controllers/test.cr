@@ -34,9 +34,11 @@ module PlaceOS::Drivers::Api
 
       io = IO::Memory.new
       exit_code = launch_spec(io, debug)
-
-      render :not_acceptable, text: io.to_s if exit_code != 0
-      render text: io.to_s
+      if exit_code.zero?
+        render text: io.to_s
+      else
+        render :not_acceptable, text: io.to_s
+      end
     end
 
     # WS watch the output from running specs

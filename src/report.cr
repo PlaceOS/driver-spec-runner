@@ -115,18 +115,24 @@ module PlaceOS::Drivers
       params["repository"] = Settings.repo unless Settings.repo.blank?
       uri = URI.new(path: "/test", query: params)
 
-      self.class.with_runner_client do |client|
+      response = self.class.with_runner_client do |client|
         client.read_timeout = 6.minutes
         begin
-          if client.post(uri.to_s).success?
-            unit.task.done(green "done")
-          else
-            state_channel.send Datum.failed(unit.driver)
-            unit.task.fail(red "failed")
-          end
+          client.post(uri.to_s)
         rescue IO::TimeoutError
           unit.task.fail(red "timeout")
           state_channel.send Datum.timeout(unit.driver)
+          nil
+        end
+      end
+
+      if response
+        if response.success?
+          unit.task.done(green "passed")
+        else
+          spawn { log_compilation_failure(unit, response.body) }
+          unit.task.fail(red "failed")
+          state_channel.send Datum.failed(unit.driver)
         end
       end
 
