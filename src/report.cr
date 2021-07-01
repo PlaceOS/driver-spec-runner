@@ -10,6 +10,7 @@ module Settings
   class_property host = "localhost"
   class_property port = 8080
   class_property repo = ""
+  class_property? no_colour = false
 end
 
 module PlaceOS::Drivers
@@ -72,26 +73,26 @@ module PlaceOS::Drivers
     end
 
     def build(unit)
-      unit.task.done("compiling")
+      unit.task.done(yellow "compiling")
       self.class.with_runner_client do |client|
         client.read_timeout = 6.minutes
         begin
           client.post("/build?driver=#{unit.driver}") do |response|
             if response.success?
-              unit.task.done("builds")
+              unit.task.done(green "builds")
 
               if unit.is_a?(Test)
                 test_channel.send(unit)
                 return
               end
             else
-              unit.task.fail("failed to compile!")
+              unit.task.fail(red "failed to compile!")
               state_channel.send Datum.no_compile(unit.driver)
               spawn { log_compilation_failure(unit, response.body_io) }
             end
           end
         rescue IO::TimeoutError
-          unit.task.fail("timeout")
+          unit.task.fail(red "timeout")
           state_channel.send Datum.timeout(unit.driver)
         end
       end
@@ -100,7 +101,7 @@ module PlaceOS::Drivers
     end
 
     def test(unit)
-      unit.task.done("testing")
+      unit.task.done(yellow "testing")
       tested.add(1)
 
       params = URI::Params.new({
@@ -116,13 +117,13 @@ module PlaceOS::Drivers
         client.read_timeout = 6.minutes
         begin
           if client.post(uri.to_s).success?
-            unit.task.done("done")
+            unit.task.done(green "done")
           else
             state_channel.send Datum.failed(unit.driver)
-            unit.task.fail("failed")
+            unit.task.fail(red "failed")
           end
         rescue IO::TimeoutError
-          unit.task.fail("timeout")
+          unit.task.fail(red "timeout")
           state_channel.send Datum.timeout(unit.driver)
         end
       end
@@ -196,6 +197,12 @@ module PlaceOS::Drivers
     # Helpers
     ###################################################################################################
 
+    {% for colour in {:red, :yellow, :green} %}
+      def {{ colour.id }}(string)
+        Settings.no_colour? ? string : string.colorize.{{ colour.id }}.to_s
+      end
+    {% end %}
+
     def mark_finished(unit)
       tasks_lock.synchronize { tasks.delete(unit.task) }
       done_channel.send(nil)
@@ -222,39 +229,43 @@ module Settings
   class_property host = "localhost"
   class_property port = 8080
   class_property repo = ""
+  class_property passed_files = [] of String
 end
 
 OptionParser.parse(ARGV.dup) do |parser|
-  parser.banner = "Usage: #{PROGRAM_NAME} [arguments]"
+  parser.banner = "Usage: #{PROGRAM_NAME} [arguments] [<file>]"
   parser.on("-h HOST", "--host=HOST", "Specifies the server host") { |h| Settings.host = h }
   parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| Settings.port = p.to_i }
-  parser.on("-r REPO", "--repo=REPO", "Specifies the repository to report on") { |r| Settings.repo = r }
+  parser.on("--no-colour", "Removes colour from the report") { Settings.no_colour = true }
+
+  parser.unknown_args do |before_dash, after_dash|
+    filenames = (before_dash + after_dash).sort!.uniq!.select &->File.exists?(String)
+    Settings.passed_files = filenames
+  end
 end
 
-puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? Settings.repo + " " : "default "}repository)"
+puts "running report on drivers in `./drivers` against #{Settings.host}:#{Settings.port}"
 
 # Driver discovery
 
 print "discovering drivers... "
-
 response = PlaceOS::Drivers::Report.with_runner_client &.get("/build")
-if !response.success?
-  abort("failed to obtain driver list")
-end
+abort("failed to obtain driver list") unless response.success?
 
 drivers = Array(String).from_json(response.body)
+# Filter by files passed via the CLI, if any
+drivers = drivers.select &.in? Settings.passed_files unless Settings.passed_files.empty?
 puts "found #{drivers.size}"
 
 # Spec discovery
 
 print "locating specs... "
-
 response = PlaceOS::Drivers::Report.with_runner_client &.get("/test")
-if !response.success?
-  abort("failed to obtain spec list")
-end
+abort("failed to obtain spec list") unless response.success?
 
 specs = Array(String).from_json(response.body)
+# Filter by files passed via the CLI, if any
+specs = specs.select &.in? Settings.passed_files unless Settings.passed_files.empty?
 puts "found #{specs.size}"
 
 report = PlaceOS::Drivers::Report.new
