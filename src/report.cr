@@ -1,4 +1,3 @@
-require "atomic"
 require "colorize"
 require "griffith"
 require "http"
@@ -38,6 +37,7 @@ module PlaceOS::Drivers
         CompileOnly
         Failed
         NoCompile
+        Tested
         Timeout
       end
 
@@ -71,8 +71,6 @@ module PlaceOS::Drivers
     getter done_channel : Channel(Nil) = Channel(Nil).new
     getter build_channel : Channel(Build) = Channel(Build).new(1)
     getter test_channel : Channel(Test) = Channel(Test).new(Settings.tests)
-
-    getter tested : Atomic(Int32) = Atomic(Int32).new(0)
 
     def stop
       build_channel.close
@@ -112,7 +110,7 @@ module PlaceOS::Drivers
 
     def test(unit)
       unit.task.done(yellow "testing")
-      tested.add(1)
+      state_channel.send Datum.tested(unit.driver)
 
       params = URI::Params.new({
         "driver" => [unit.driver],
@@ -205,11 +203,12 @@ module PlaceOS::Drivers
       {% begin %}
       {% for status in Datum::State.constants.map(&.underscore) %}
         {{ status }} = state.select(&.{{ status }}?).map(&.value)
+        {% unless status == "tested" %}
         puts "\n\n{{ status.gsub(/_/, " ") }}:\n * #{{{ status }}.join("\n * ")}" unless {{ status }}.empty?
+        {% end %}
       {% end %}
 
-      result_string = "\n\n#{tested.lazy_get} drivers, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
-
+      result_string = "\n\n#{tested.size} tested, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
 
       (timeout.empty? && failed.empty? && no_compile.empty?).tap do |passed|
         puts passed ? green result_string : red result_string
@@ -276,31 +275,17 @@ Settings.standard_render = false unless ENV["CI"]?.presence.nil?
 
 puts "running report on drivers in `./drivers` against #{Settings.host}:#{Settings.port}"
 
-# Driver discovery
-print "discovering drivers... "
-response = PlaceOS::Drivers::Report.with_runner_client &.get("/build")
-abort("failed to obtain drivers list") unless response.success?
+drivers, specs = { {"/build", "drivers"}, {"/test", "specs"} }.map do |path, type|
+  print "discovering #{type}... "
+  response = PlaceOS::Drivers::Report.with_runner_client &.get(path)
+  abort("failed to obtain #{type} list") unless response.success?
+  Array(String).from_json(response.body).tap { |found| puts "found #{found.size}" }
+end
 
-found_drivers = Array(String).from_json(response.body)
-puts "found #{found_drivers.size}"
-
-# Spec discovery
-print "discovering specs... "
-response = PlaceOS::Drivers::Report.with_runner_client &.get("/test")
-abort("failed to obtain specs list") unless response.success?
-
-specs = Array(String).from_json(response.body)
-puts "found #{specs.size}"
-
-drivers = if Settings.passed_files.empty?
-            found_drivers
-          else
-            # Find specs passed that may have drivers
-            potential_drivers = Settings.passed_files.map &.gsub("_spec.cr", ".cr")
-            found_drivers.select do |driver|
-              driver.in?(potential_drivers) || driver.in?(Settings.passed_files)
-            end
-          end
+unless Settings.passed_files.empty?
+  # Intersect passed files, including specs passed that may have drivers
+  drivers = drivers & Settings.passed_files.map(&.gsub("_spec.cr", ".cr"))
+end
 
 report = PlaceOS::Drivers::Report.new
 
