@@ -237,27 +237,38 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("--no-colour", "Removes colour from the report") { Settings.no_colour = true }
 
   parser.unknown_args do |before_dash, after_dash|
-    filenames = (before_dash + after_dash).sort!.uniq!.select &->File.exists?(String)
+    filenames = (before_dash + after_dash).sort!.uniq!
     Settings.passed_files = filenames
   end
 end
 
 puts "running report on drivers in `./drivers` against #{Settings.host}:#{Settings.port}"
 
-# Driver and spec discovery
+# Driver discovery
+print "discovering drivers... "
+response = PlaceOS::Drivers::Report.with_runner_client &.get("/build")
+abort("failed to obtain drivers list") unless response.success?
 
-drivers, specs = {"drivers", "specs"}.map do |discover|
-  print "discovering #{discover}... "
-  path = discover == "drivers" ? "/build" : "/test"
-  response = PlaceOS::Drivers::Report.with_runner_client &.get(path)
-  abort("failed to obtain #{discover} list") unless response.success?
+found_drivers = Array(String).from_json(response.body)
+puts "found #{found_drivers.size}"
 
-  results = Array(String).from_json(response.body)
-  # Filter by files passed via the CLI, if any
-  results = results.select &.in? Settings.passed_files unless Settings.passed_files.empty?
-  puts "found #{results.size}"
-  results
-end
+# Spec discovery
+print "discovering specs... "
+response = PlaceOS::Drivers::Report.with_runner_client &.get("/test")
+abort("failed to obtain specs list") unless response.success?
+
+specs = Array(String).from_json(response.body)
+puts "found #{specs.size}"
+
+drivers = if Settings.passed_files.empty?
+            found_drivers
+          else
+            # Find specs passed that may have drivers
+            potential_drivers = Settings.passed_files.map &.gsub("_spec.cr", ".cr")
+            found_drivers.select do |driver|
+              driver.in?(potential_drivers) || driver.in?(Settings.passed_files)
+            end
+          end
 
 report = PlaceOS::Drivers::Report.new
 
