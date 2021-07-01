@@ -60,7 +60,7 @@ module PlaceOS::Drivers
     alias Build = CompileOnly | Test
 
     getter done_channel : Channel(Nil) = Channel(Nil).new
-    getter build_channel : Channel(Build) = Channel(Build).new(2)
+    getter build_channel : Channel(Build) = Channel(Build).new(1)
     getter test_channel : Channel(Test) = Channel(Test).new(10)
 
     getter tested : Atomic(Int32) = Atomic(Int32).new(0)
