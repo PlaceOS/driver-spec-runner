@@ -70,7 +70,7 @@ module PlaceOS::Drivers
 
     getter done_channel : Channel(Nil) = Channel(Nil).new
     getter build_channel : Channel(Build) = Channel(Build).new(1)
-    getter test_channel : Channel(Test) = Channel(Test).new(10)
+    getter test_channel : Channel(Test) = Channel(Test).new(Settings.tests)
 
     getter tested : Atomic(Int32) = Atomic(Int32).new(0)
 
@@ -120,7 +120,6 @@ module PlaceOS::Drivers
         "force"  => ["true"],
       })
 
-      params["repository"] = Settings.repo unless Settings.repo.blank?
       uri = URI.new(path: "/test", query: params)
 
       response = self.class.with_runner_client do |client|
@@ -163,9 +162,11 @@ module PlaceOS::Drivers
       end
 
       # Test the drivers
-      spawn do
-        while unit = test_channel.receive?
-          test(unit)
+      Settings.tests.times do
+        spawn do
+          while unit = test_channel.receive?
+            test(unit)
+          end
         end
       end
 
@@ -249,9 +250,9 @@ end
 
 module Settings
   class_property host = "localhost"
-  class_property port = 8080
-  class_property repo = ""
   class_property passed_files = [] of String
+  class_property port = 8080
+  class_property tests = 10
   class_property? no_colour = false
   class_property? standard_render = true
 end
@@ -260,6 +261,7 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.banner = "Usage: #{PROGRAM_NAME} [arguments] [<file>]"
   parser.on("-h HOST", "--host=HOST", "Specifies the server host") { |h| Settings.host = h }
   parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| Settings.port = p.to_i }
+  parser.on("-t TESTS", "--tests=TESTS", "Number of tests to run in parallel") { |t| Settings.tests = t.to_i }
   parser.on("--no-colour", "Removes colour from the report") { Settings.no_colour = true }
   parser.on("--basic-render", "Stop CLI rendering tricks") { Settings.standard_render = false }
 
