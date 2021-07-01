@@ -244,27 +244,20 @@ end
 
 puts "running report on drivers in `./drivers` against #{Settings.host}:#{Settings.port}"
 
-# Driver discovery
+# Driver and spec discovery
 
-print "discovering drivers... "
-response = PlaceOS::Drivers::Report.with_runner_client &.get("/build")
-abort("failed to obtain driver list") unless response.success?
+drivers, specs = {"drivers", "specs"}.map do |discover|
+  print "discovering #{discover}... "
+  path = discover == "drivers" ? "/build" : "/test"
+  response = PlaceOS::Drivers::Report.with_runner_client &.get(path)
+  abort("failed to obtain #{discover} list") unless response.success?
 
-drivers = Array(String).from_json(response.body)
-# Filter by files passed via the CLI, if any
-drivers = drivers.select &.in? Settings.passed_files unless Settings.passed_files.empty?
-puts "found #{drivers.size}"
-
-# Spec discovery
-
-print "locating specs... "
-response = PlaceOS::Drivers::Report.with_runner_client &.get("/test")
-abort("failed to obtain spec list") unless response.success?
-
-specs = Array(String).from_json(response.body)
-# Filter by files passed via the CLI, if any
-specs = specs.select &.in? Settings.passed_files unless Settings.passed_files.empty?
-puts "found #{specs.size}"
+  results = Array(String).from_json(response.body)
+  # Filter by files passed via the CLI, if any
+  results = results.select &.in? Settings.passed_files unless Settings.passed_files.empty?
+  puts "found #{results.size}"
+  results
+end
 
 report = PlaceOS::Drivers::Report.new
 
