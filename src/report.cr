@@ -14,8 +14,15 @@ end
 
 module PlaceOS::Drivers
   class Report
-    def initialize
+    getter log_directory : Path
+
+    def initialize(log_directory : String = "./report_failures")
+      @log_directory = Path[log_directory].expand
+      Dir.mkdir_p(@log_directory)
     end
+
+    # Fail states
+    ###################################################################################################
 
     record Datum, state : State, value : String do
       enum State
@@ -35,12 +42,17 @@ module PlaceOS::Drivers
       {% end %}
     end
 
+    getter state_lock : Mutex = Mutex.new
+    getter state : Array(Datum) = [] of Datum
+
+    # Rendering
     ###################################################################################################
 
     getter tasks_lock : Mutex = Mutex.new
-    getter state_lock : Mutex = Mutex.new
     getter tasks : Array(Griffith::Task) = [] of Griffith::Task
-    getter state : Array(Datum) = [] of Datum
+
+    # CSP
+    ###################################################################################################
 
     record CompileOnly, driver : String, task : Griffith::Task
     record Test, driver : String, spec : String, task : Griffith::Task
@@ -66,17 +78,16 @@ module PlaceOS::Drivers
         begin
           response = client.post("/build?driver=#{unit.driver}")
           if response.success?
+            unit.task.done("builds")
+
             if unit.is_a?(Test)
-              unit.task.details("builds")
               test_channel.send(unit)
               return
-            else
-              unit.task.done("builds")
             end
           else
             unit.task.fail("failed to compile!")
-            unit.task.details("\n#{response.body}\n")
             state_lock.synchronize { state << Datum.no_compile(unit.driver) }
+            spawn { log_compilation_failure(unit, response.body_io) }
           end
         rescue IO::TimeoutError
           unit.task.fail("timeout")
@@ -175,6 +186,15 @@ module PlaceOS::Drivers
     def mark_finished(unit)
       tasks_lock.synchronize { tasks.delete(unit.task) }
       done_channel.send(nil)
+    end
+
+    def log_compilation_failure(unit, io) : Nil
+      path = unit.driver.lchop("drivers/").rchop(".cr").gsub('/', '_') + ".log"
+      File.open(log_directory / path) do |file_io|
+        file_io.copy(io)
+      end
+    rescue
+      nil
     end
 
     def self.with_runner_client
