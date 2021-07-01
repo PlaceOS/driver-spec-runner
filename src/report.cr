@@ -155,17 +155,18 @@ module PlaceOS::Drivers
         end
       end
 
-      drivers.each do |driver|
+      drivers.map do |driver|
         task = Griffith.create_task(driver)
+        task.done(blue "waiting...")
         tasks_lock.synchronize { tasks << task }
         spec = "#{driver.rchop(".cr")}_spec.cr"
-        unit = if !specs.includes? spec
-                 state_channel.send Datum.compile_only(driver)
-                 CompileOnly.new(driver, task)
-               else
-                 Test.new(driver, spec, task)
-               end
-
+        if !specs.includes? spec
+          state_channel.send Datum.compile_only(driver)
+          CompileOnly.new(driver, task)
+        else
+          Test.new(driver, spec, task)
+        end
+      end.each do |unit|
         build_channel.send(unit) rescue nil
       end
 
@@ -195,7 +196,7 @@ module PlaceOS::Drivers
     # Helpers
     ###################################################################################################
 
-    {% for colour in {:red, :yellow, :green} %}
+    {% for colour in {:red, :yellow, :green, :blue} %}
       def {{ colour.id }}(string)
         Settings.no_colour? ? string : string.colorize.{{ colour.id }}.to_s
       end
