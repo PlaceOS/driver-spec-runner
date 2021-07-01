@@ -88,7 +88,7 @@ module PlaceOS::Drivers
             else
               unit.task.fail(red "failed to compile!")
               state_channel.send Datum.no_compile(unit.driver)
-              spawn { log_compilation_failure(unit, response.body_io) }
+              spawn { log_compilation_failure(unit, response.body) }
             end
           end
         rescue IO::TimeoutError
@@ -207,10 +207,10 @@ module PlaceOS::Drivers
       done_channel.send(nil)
     end
 
-    def log_compilation_failure(unit, io) : Nil
+    def log_compilation_failure(unit, output) : Nil
       path = unit.driver.lchop("drivers/").rchop(".cr").gsub('/', '_') + ".log"
       File.open(log_directory / path, mode: "w+") do |file_io|
-        IO.copy(io, file_io)
+        file_io << output
       end
     rescue
       nil
