@@ -131,7 +131,7 @@ module PlaceOS::Drivers
       mark_finished(unit)
     end
 
-    def run(drivers : Array(String), specs : Array(String)) : Nil
+    def run(drivers : Array(String), specs : Array(String)) : Bool
       # Collect statistics
       spawn do
         while result = state_channel.receive?
@@ -185,12 +185,11 @@ module PlaceOS::Drivers
       {% end %}
 
       result_string = "\n\n#{tested.lazy_get} drivers, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
-      if timeout.empty? && failed.empty? && no_compile.empty?
-        puts result_string.colorize.green
-      else
-        puts result_string.colorize.red
-      end
 
+
+      (timeout.empty? && failed.empty? && no_compile.empty?).tap do |passed|
+        puts passed ? green result_string : red result_string
+      end
       {% end %}
     end
 
@@ -275,4 +274,4 @@ Signal::INT.trap do |signal|
   signal.ignore
 end
 
-report.run(drivers, specs)
+exit 1 unless report.run(drivers, specs)
