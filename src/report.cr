@@ -270,7 +270,7 @@ OptionParser.parse(ARGV.dup) do |parser|
 end
 
 # Disable fancy rendering in CI
-Settings.standard_render = false if ENV["CI"]?
+Settings.standard_render = false unless ENV["CI"]?.presence.nil?
 
 puts "running report on drivers in `./drivers` against #{Settings.host}:#{Settings.port}"
 
