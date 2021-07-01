@@ -42,7 +42,7 @@ module PlaceOS::Drivers
       {% end %}
     end
 
-    getter state_lock : Mutex = Mutex.new
+    getter state_channel : Channel(Datum) = Channel(Datum).new
     getter state : Array(Datum) = [] of Datum
 
     # Rendering
@@ -72,26 +72,27 @@ module PlaceOS::Drivers
     end
 
     def build(unit)
-      unit.task.details("compiling")
+      unit.task.done("compiling")
       self.class.with_runner_client do |client|
         client.read_timeout = 6.minutes
         begin
-          response = client.post("/build?driver=#{unit.driver}")
-          if response.success?
-            unit.task.done("builds")
+          client.post("/build?driver=#{unit.driver}") do |response|
+            if response.success?
+              unit.task.done("builds")
 
-            if unit.is_a?(Test)
-              test_channel.send(unit)
-              return
+              if unit.is_a?(Test)
+                test_channel.send(unit)
+                return
+              end
+            else
+              unit.task.fail("failed to compile!")
+              state_channel.send Datum.no_compile(unit.driver)
+              spawn { log_compilation_failure(unit, response.body_io) }
             end
-          else
-            unit.task.fail("failed to compile!")
-            state_lock.synchronize { state << Datum.no_compile(unit.driver) }
-            spawn { log_compilation_failure(unit, response.body_io) }
           end
         rescue IO::TimeoutError
           unit.task.fail("timeout")
-          state_lock.synchronize { state << Datum.timeout(unit.driver) }
+          state_channel.send Datum.timeout(unit.driver)
         end
       end
 
@@ -117,11 +118,12 @@ module PlaceOS::Drivers
           if client.post(uri.to_s).success?
             unit.task.done("done")
           else
+            state_channel.send Datum.failed(unit.driver)
             unit.task.fail("failed")
           end
         rescue IO::TimeoutError
           unit.task.fail("timeout")
-          state_lock.synchronize { state << Datum.timeout(unit.driver) }
+          state_channel.send Datum.timeout(unit.driver)
         end
       end
 
@@ -129,6 +131,13 @@ module PlaceOS::Drivers
     end
 
     def run(drivers : Array(String), specs : Array(String)) : Nil
+      # Collect statistics
+      spawn do
+        while result = state_channel.receive?
+          state << result
+        end
+      end
+
       # Build the drivers
       spawn do
         loop do
@@ -150,6 +159,7 @@ module PlaceOS::Drivers
         tasks_lock.synchronize { tasks << task }
         spec = "#{driver.rchop(".cr")}_spec.cr"
         unit = if !specs.includes? spec
+                 state_channel.send Datum.compile_only(driver)
                  CompileOnly.new(driver, task)
                else
                  Test.new(driver, spec, task)
@@ -162,22 +172,25 @@ module PlaceOS::Drivers
         done_channel.receive?
       end
 
+      state_channel.close
+
       # Output report summary
 
-      failed = state.select &.failed?
-      timeout = state.select &.timeout?
-      no_compile = state.select &.no_compile?
-      compile_only = state.select &.compile_only?
+      {% begin %}
 
-      puts "\n\nspec failures:\n * #{failed.join("\n * ")}" if !failed.empty?
-      puts "\n\nspec timeouts:\n * #{timeout.join("\n * ")}" if !timeout.empty?
-      puts "\n\nfailed to compile:\n * #{no_compile.join("\n * ")}" if !no_compile.empty?
+      {% for status in Datum::State.constants.map(&.underscore) %}
+        {{ status }} = state.select(&.{{ status }}?).map(&.value)
+        puts "\n\n{{ status.gsub(/_/, " ") }}:\n * #{{{ status }}.join("\n * ")}" unless {{ status }}.empty?
+      {% end %}
+
       result_string = "\n\n#{tested.lazy_get} drivers, #{failed.size + no_compile.size} failures, #{timeout.size} timeouts, #{compile_only.size} without spec"
       if timeout.empty? && failed.empty? && no_compile.empty?
         puts result_string.colorize.green
       else
         puts result_string.colorize.red
       end
+
+      {% end %}
     end
 
     # Helpers
@@ -218,7 +231,7 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("-r REPO", "--repo=REPO", "Specifies the repository to report on") { |r| Settings.repo = r }
 end
 
-puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? Settings.repo + " " : "default "} repository)"
+puts "running report against #{Settings.host}:#{Settings.port} (#{Settings.repo.presence ? Settings.repo + " " : "default "}repository)"
 
 # Driver discovery
 
