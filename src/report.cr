@@ -178,7 +178,6 @@ module PlaceOS::Drivers
       # Output report summary
 
       {% begin %}
-
       {% for status in Datum::State.constants.map(&.underscore) %}
         {{ status }} = state.select(&.{{ status }}?).map(&.value)
         puts "\n\n{{ status.gsub(/_/, " ") }}:\n * #{{{ status }}.join("\n * ")}" unless {{ status }}.empty?
