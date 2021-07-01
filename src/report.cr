@@ -74,26 +74,28 @@ module PlaceOS::Drivers
 
     def build(unit)
       unit.task.done(yellow "compiling")
-      self.class.with_runner_client do |client|
+      response = self.class.with_runner_client do |client|
         client.read_timeout = 6.minutes
         begin
-          client.post("/build?driver=#{unit.driver}") do |response|
-            if response.success?
-              unit.task.done(green "builds")
-
-              if unit.is_a?(Test)
-                test_channel.send(unit)
-                return
-              end
-            else
-              unit.task.fail(red "failed to compile!")
-              state_channel.send Datum.no_compile(unit.driver)
-              spawn { log_compilation_failure(unit, response.body) }
-            end
-          end
+          client.post("/build?driver=#{unit.driver}")
         rescue IO::TimeoutError
           unit.task.fail(red "timeout")
           state_channel.send Datum.timeout(unit.driver)
+          nil
+        end
+      end
+
+      if response
+        if response.success?
+          unit.task.done(green "builds")
+          if unit.is_a?(Test)
+            test_channel.send(unit)
+            return
+          end
+        else
+          spawn { log_compilation_failure(unit, response.body) }
+          unit.task.fail(red "failed to compile!")
+          state_channel.send Datum.no_compile(unit.driver)
         end
       end
 
@@ -141,36 +143,43 @@ module PlaceOS::Drivers
 
       # Build the drivers
       spawn do
-        loop do
-          break unless unit = build_channel.receive?
+        while unit = build_channel.receive?
           build(unit)
         end
       end
 
       # Test the drivers
       spawn do
-        loop do
-          break unless unit = test_channel.receive?
+        while unit = test_channel.receive?
           test(unit)
         end
       end
 
-      drivers.map do |driver|
-        task = Griffith.create_task(driver)
-        task.done(blue "waiting...")
-        tasks_lock.synchronize { tasks << task }
-        spec = "#{driver.rchop(".cr")}_spec.cr"
-        if !specs.includes? spec
-          state_channel.send Datum.compile_only(driver)
-          CompileOnly.new(driver, task)
-        else
-          Test.new(driver, spec, task)
+      Fiber.yield
+
+      # Feed units through pipeline in batches
+      spawn do
+        drivers.in_groups_of(6).each do |group|
+          units = group.compact.map do |driver|
+            task = Griffith.create_task(driver)
+            task.done(blue "waiting...")
+            tasks_lock.synchronize { tasks << task }
+            spec = "#{driver.rchop(".cr")}_spec.cr"
+            if specs.includes? spec
+              Test.new(driver, spec, task)
+            else
+              state_channel.send Datum.compile_only(driver)
+              CompileOnly.new(driver, task)
+            end
+          end
+
+          units.each { |unit| build_channel.send(unit) rescue nil }
         end
-      end.each do |unit|
-        build_channel.send(unit) rescue nil
       end
 
-      drivers.size.times do
+      Fiber.yield
+
+      drivers.size.times do |i|
         done_channel.receive?
       end
 
@@ -274,8 +283,9 @@ drivers = if Settings.passed_files.empty?
 report = PlaceOS::Drivers::Report.new
 
 Signal::INT.trap do |signal|
-  report.stop
   signal.ignore
+  puts ">"
+  report.stop
 end
 
 exit 1 unless report.run(drivers, specs)
