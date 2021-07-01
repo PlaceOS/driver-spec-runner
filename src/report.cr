@@ -6,11 +6,19 @@ require "json"
 require "option_parser"
 require "uri"
 
-module Settings
-  class_property host = "localhost"
-  class_property port = 8080
-  class_property repo = ""
-  class_property? no_colour = false
+module Griffith
+  class ConsoleReporter
+    private def write(text, line_number)
+      if Settings.standard_render?
+        previous_def
+      else
+        @mutex.synchronize do
+          @io.puts text
+          @io.flush
+        end
+      end
+    end
+  end
 end
 
 module PlaceOS::Drivers
@@ -244,6 +252,8 @@ module Settings
   class_property port = 8080
   class_property repo = ""
   class_property passed_files = [] of String
+  class_property? no_colour = false
+  class_property? standard_render = true
 end
 
 OptionParser.parse(ARGV.dup) do |parser|
@@ -251,12 +261,16 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("-h HOST", "--host=HOST", "Specifies the server host") { |h| Settings.host = h }
   parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| Settings.port = p.to_i }
   parser.on("--no-colour", "Removes colour from the report") { Settings.no_colour = true }
+  parser.on("--basic-render", "Stop CLI rendering tricks") { Settings.standard_render = false }
 
   parser.unknown_args do |before_dash, after_dash|
     filenames = (before_dash + after_dash).sort!.uniq!
     Settings.passed_files = filenames
   end
 end
+
+# Disable fancy rendering in CI
+Settings.standard_render = false if ENV["CI"]?
 
 puts "running report on drivers in `./drivers` against #{Settings.host}:#{Settings.port}"
 
