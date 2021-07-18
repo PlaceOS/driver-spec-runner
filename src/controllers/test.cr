@@ -87,14 +87,34 @@ module PlaceOS::Drivers::Api
         io.close
         exit_code
       else
-        exit_code = Process.run(
-          @spec_path,
-          nil,
-          {"SPEC_RUN_DRIVER" => @driver_path},
-          input: Process::Redirect::Close,
-          output: io,
-          error: io
-        ).exit_code
+        channel = Channel(Nil).new
+        process = nil
+        status = nil
+
+        spawn(same_thread: true) do
+          Process.run(
+            @spec_path,
+            nil,
+            {"SPEC_RUN_DRIVER" => @driver_path},
+            input: Process::Redirect::Close,
+            output: io,
+            error: io
+          ) do |ref|
+            process = ref
+            nil
+          end
+          status = $?
+          channel.send(nil)
+        end
+
+        select
+        when channel.receive
+        when timeout(5.minutes)
+          process.not_nil!.signal(:kill)
+          channel.receive
+        end
+
+        exit_code = status.not_nil!.exit_code
         io << "spec runner exited with #{exit_code}\n"
         io.close
         exit_code
