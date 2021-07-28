@@ -11,9 +11,15 @@ module PlaceOS::Drivers::Api
       response.headers["X-Request-ID"] = Log.context.metadata[:request_id].as_s
     end
 
-    # Builds and validates the selected repository
-    def get_repository_path
-      Compiler::Helper.get_repository_path(params["repository"]?)
+    getter working_directory : String = Path["./repositories"].expand.to_s
+
+    getter repository : String do
+      params["repository"]
+    end
+
+    # Builds and validates the path to the repository
+    getter repository_path : String do
+      Compiler::Git.repository_path(repository, working_directory)
     end
   end
 end

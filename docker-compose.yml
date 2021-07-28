@@ -7,6 +7,10 @@ x-deployment-env: &deployment-env
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
+x-build-client-env: &build-client-env
+  BUILD_HOST: ${BUILD_HOST:-build}
+  BUILD_PORT: ${BUILD_URL:-3000}
+
 services:
   test:
     build:
@@ -21,12 +25,21 @@ services:
       - ./drivers/:/app/drivers/
     depends_on:
       - redis
+      - build
     environment:
       # Service Hosts
       << : *redis-client-env
+      << : *build-client-env
       # Environment
-      GITHUB_ACTION: ${GITHUB_ACTION:-}
       << : *deployment-env
+      GITHUB_ACTION: ${GITHUB_ACTION:-}
+
+  build:
+    image: placeos/build:${PLACE_BUILD_TAG:-nightly}
+    restart: always
+    hostname: build
+    environment:
+      TZ: $TZ
 
   redis:
     image: eqalpha/keydb

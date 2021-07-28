@@ -1,5 +1,8 @@
 require "./application"
 
+require "placeos-build/driver_store/filesystem"
+require "placeos-build/client"
+
 module PlaceOS::Drivers::Api
   class Build < Application
     base "/build"
@@ -8,9 +11,9 @@ module PlaceOS::Drivers::Api
     def index
       compiled = params["compiled"]?
       if compiled
-        render json: PlaceOS::Compiler.compiled_drivers
+        render json: PlaceOS::Build::Client.client &.query.map(&.filename)
       else
-        result = Dir.cd(get_repository_path) do
+        result = Dir.cd(repository_path) do
           Dir.glob("drivers/**/*.cr").reject! do |path|
             path.ends_with?("_spec.cr") || !File.read_lines(path).any? &.includes?("< PlaceOS::Driver")
           end
@@ -21,8 +24,8 @@ module PlaceOS::Drivers::Api
     end
 
     def show
-      driver_source = URI.decode(params["id"])
-      render json: PlaceOS::Compiler.compiled_drivers(driver_source)
+      entrypoint = URI.decode(params["id"])
+      render json: binary_store.query(entrypoint: entrypoint)
     end
 
     # grab the list of available repositories
@@ -35,52 +38,72 @@ module PlaceOS::Drivers::Api
       driver_source = URI.decode(params["id"])
       count = (params["count"]? || 50).to_i
 
-      render json: PlaceOS::Compiler::GitCommands.commits(driver_source, count, get_repository_path)
+      render json: PlaceOS::Compiler::Git.commits(driver_source, repository, working_directory, count)
     end
 
     # Commits at repo level
     get "/repository_commits" do
       count = (params["count"]? || 50).to_i
-      render json: PlaceOS::Compiler::GitCommands.repository_commits(get_repository_path, count)
+
+      render json: PlaceOS::Compiler::Git.repository_commits(repository, working_directory, count)
     end
 
-    # build a drvier, optionally based on the version specified
+    # Build a drvier, optionally based on the version specified
+    #
     def create
-      driver = params["driver"]
-      commit = params["commit"]? || "HEAD"
-
-      result = PlaceOS::Compiler.build_driver(driver, commit, get_repository_path)
-
-      if result[:exit_status] == 0
-        render :not_acceptable, text: result[:output] unless File.exists?(result[:executable])
-      else
-        render :not_acceptable, text: result[:output]
-      end
-
-      response.headers["Location"] = "/build/#{URI.encode_www_form(driver)}"
-      head :created
+      Api::Build.build_driver
     end
 
-    # delete a built driver
+    macro build_driver
+      commit = params["commit"]?.presence
+      entrypoint = params["driver"]
+      force_recompile = params["force_recompile"].presence.try &.downcase.in?("1", "true")
+
+      unless force_recompile || (existing = binary_store.query(entrypoint: entrypoint, commit: commit).first?).nil?
+        path = binary_store.path(existing)
+        @driver_path = path
+        response.headers["Location"] = URI.encode_www_form(path)
+        head :ok
+        return
+      end
+
+      commit = "HEAD" if commit.nil?
+
+      result = PlaceOS::Build::Client.client do |client|
+        client.repository_path = repository_path
+        client.compile(file: entrypoint, url: "local", commit: commit) do |key, io|
+          binary_store.write(key, io)
+        end
+      end
+
+      case result
+      in PlaceOS::Build::Compilation::Success
+        path = result.path
+        @driver_path = path
+        response.headers["Location"] = URI.encode_www_form(path)
+        render :created, json: binary_store.info(PlaceOS::Build::Executable.new(result.path))
+      in PlaceOS::Build::Compilation::NotFound
+        head :not_found
+      in PlaceOS::Build::Compilation::Failure
+        render :not_acceptable, json: result
+      end
+    end
+
+    getter driver_path : String = ""
+
+    class_getter binary_store = PlaceOS::Build::Filesystem.new
+    getter binary_store : PlaceOS::Build::Filesystem { Api::Build.binary_store }
+
+    # Delete a built driver
+    #
     def destroy
-      driver_source = URI.decode(params["id"])
-      commit = params["commit"]?
+      entrypoint = URI.decode(params["id"])
+      commit = params["commit"]?.presence
 
-      # Check repository to prevent abuse (don't want to delete the wrong thing)
-      repository = get_repository_path
-      PlaceOS::Compiler::GitCommands.checkout(driver_source, commit || "HEAD", repository) do
-        head :not_found unless File.exists?(File.join(repository, driver_source))
+      binary_store.query(entrypoint: entrypoint, commit: commit).each do |e|
+        File.delete binary_store.path(e) rescue nil
       end
 
-      files = if commit
-                [Compiler.executable_name(driver_source, commit, nil)]
-              else
-                PlaceOS::Compiler.compiled_drivers(driver_source)
-              end
-
-      files.each do |file|
-        File.delete File.join(PlaceOS::Compiler.bin_dir, file)
-      end
       head :ok
     end
   end
