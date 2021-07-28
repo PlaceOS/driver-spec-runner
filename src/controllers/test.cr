@@ -6,16 +6,16 @@ module PlaceOS::Drivers::Api
 
     before_action :ensure_driver_compiled, only: [:run_spec, :create]
     before_action :ensure_spec_compiled, only: [:run_spec, :create]
+
     @driver_path : String = ""
     @spec_path : String = ""
 
-    PLACE_DRIVERS_DIR = "../../#{Dir.current.split("/")[-1]}"
+    PLACE_DRIVERS_DIR = "../../#{Path[Dir.current].basename}"
 
     # Specs available
     def index
-      result = [] of String
-      Dir.cd(get_repository_path) do
-        Dir.glob("drivers/**/*_spec.cr") { |file| result << file }
+      result = Dir.cd(repository_path) do
+        Dir.glob("drivers/**/*_spec.cr")
       end
       render json: result
     end
@@ -25,7 +25,7 @@ module PlaceOS::Drivers::Api
       spec = URI.decode(params["id"])
       count = (params["count"]? || 50).to_i
 
-      render json: Compiler::GitCommands.commits(spec, count, get_repository_path)
+      render json: Compiler::Git.commits(spec, repository, working_directory, count)
     end
 
     # Run the spec and return success if the exit status is 0
@@ -121,46 +121,45 @@ module PlaceOS::Drivers::Api
       end
     end
 
+    getter binary_store : PlaceOS::Build::Filesystem { Api::Build.binary_store }
+
     def ensure_driver_compiled
-      driver = params["driver"]
-      repository = get_repository_path
-      commit = params["commit"]? || "HEAD"
-
-      driver_path = Compiler.is_built?(driver, commit, repository)
-
-      # Build the driver if has not been compiled yet
-      debug = params["debug"]?
-      if driver_path.nil? || params["force"]? || debug
-        result = Compiler.build_driver(driver, commit, repository, debug: !!debug)
-        output = result[:output].strip
-
-        render :not_acceptable, text: output if result[:exit_status] != 0 || !File.exists?(result[:executable])
-
-        driver_path = Compiler.is_built?(driver, commit, repository)
-      end
-
-      # raise an error if the driver still does not exist
-      @driver_path = driver_path.not_nil!
+      Api::Build.build_driver
     end
 
     def ensure_spec_compiled
-      spec = params["spec"]
-      repository = get_repository_path
-      spec_commit = params["spec_commit"]? || "HEAD"
+      commit = params["spec_commit"]?.presence || "HEAD"
+      force_recompile = (params["force"]?.presence || params["force_recompile"].presence).try &.downcase.in?("1", "true")
+      entrypoint = params["spec"]
 
-      spec_path = Compiler.is_built?(spec, spec_commit, repository)
-
-      debug = params["debug"]?
-      if spec_path.nil? || params["force"]? || debug
-        result = Compiler.build_driver(spec, spec_commit, repository, debug: !!debug)
-        output = result[:output].strip
-
-        render :not_acceptable, text: output if result[:exit_status] != 0 || !File.exists?(result[:executable])
-
-        spec_path = Compiler.is_built?(spec, spec_commit, repository)
+      unless force_recompile || (existing = binary_store.query(entrypoint: entrypoint, commit: commit).first?).nil?
+        path = binary_store.path(existing)
+        @spec_path = path
+        response.headers["Location"] = URI.encode_www_form(path)
+        head :ok
+        return
       end
 
-      @spec_path = spec_path.not_nil!
+      commit = "HEAD" if commit.nil?
+
+      result = PlaceOS::Build::Client.client do |client|
+        client.repository_path = repository_path
+        client.compile(file: entrypoint, url: "local", commit: commit) do |key, io|
+          binary_store.write(key, io)
+        end
+      end
+
+      case result
+      in PlaceOS::Build::Compilation::Success
+        path = result.path
+        @spec_path = path
+        response.headers["Location"] = URI.encode_www_form(path)
+        render :created, json: binary_store.info(PlaceOS::Build::Executable.new(path))
+      in PlaceOS::Build::Compilation::NotFound
+        head :not_found
+      in PlaceOS::Build::Compilation::Failure
+        render :not_acceptable, json: result
+      end
     end
   end
 end
