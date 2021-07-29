@@ -23,8 +23,6 @@ WORKDIR /app
 
 # Install the latest version of
 # - [GDB debugger](https://sourceware.org/gdb/current/onlinedocs/gdb/)
-# - libssh2
-# - libyaml
 # - ping (via iputils)
 RUN apk add --update --no-cache \
   ca-certificates \
