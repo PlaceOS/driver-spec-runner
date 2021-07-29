@@ -2,42 +2,46 @@ require "./spec_helper"
 
 module PlaceOS::Drivers::Api
   describe Build do
-    with_server do
+    describe "GET /build" do
       it "should list drivers" do
-        result = curl("GET", "/build")
-        drivers = Array(String).from_json(result.body)
-        (drivers.size > 0).should be_true
-        drivers.includes?("drivers/place/spec_helper.cr").should be_true
-      end
+        context = Api::Build.with_request("GET", "/build", &.index)
 
+        drivers = Array(String).from_json(context.response.output.to_s)
+        drivers.should_not be_empty
+        drivers.should contain("drivers/place/spec_helper.cr")
+      end
+    end
+
+    describe "POST /build" do
       it "should build a driver" do
-        result = curl("POST", "/build?driver=drivers/place/spec_helper.cr")
-        result.status_code.should eq(201)
+        Api::Build
+          .with_request("POST", "/build?driver=drivers/place/spec_helper.cr", &.create)
+          .response
+          .status_code.should eq(201)
       end
+    end
 
+    describe "GET /build/driver/:driver" do
       it "should list compiled versions" do
-        result = curl("GET", "/build/drivers%2Fplace%2Fspec_helper.cr/")
-        result.status_code.should eq(200)
-        drivers = Array(String).from_json(result.body)
-        drivers[0].starts_with?("drivers_place_spec_helper_").should be_true
-      end
+        context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fspec_helper.cr", &.show)
 
+        Array(String).from_json(context.response.output.to_s).first.should start_with "drivers_place_spec_helper_"
+      end
+    end
+
+    describe "GET /build/driver/:driver/commits" do
       it "should list possible versions" do
-        result = curl("GET", "/build/drivers%2Fplace%2Fspec_helper.cr/commits")
-
-        result.status_code.should eq(200)
-        commits = JSON.parse(result.body)
-        commits.size.should eq(1)
+        context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fspec_helper.cr/commits", &.commits)
+        Array(String).from_json(context.response.output.to_s).size.should eq(1)
       end
+    end
 
+    describe "DELETE /build/driver/:driver" do
       it "should delete all compiled versions of a driver" do
-        result = curl("DELETE", "/build/drivers%2Fplace%2Fspec_helper.cr/")
-        result.status_code.should eq(200)
+        Api::Build.with_request("DELETE", "/build/drivers%2Fplace%2Fspec_helper.cr", &.destroy)
 
-        result = curl("GET", "/build/drivers%2Fplace%2Fspec_helper.cr/")
-        result.status_code.should eq(200)
-        drivers = Array(String).from_json(result.body)
-        drivers.size.should eq(0)
+        context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fspec_helper.cr", &.show)
+        Array(String).from_json(context.response.output.to_s).should be_empty
       end
     end
   end

@@ -31,12 +31,12 @@ module PlaceOS::Drivers::Api
     end
 
     # grab the list of available repositories
-    get "/repositories" do
+    get "/repositories", :list_repositories do
       render json: PlaceOS::Compiler.repositories
     end
 
     # grab the list of available versions of file / which are built
-    get "/:driver/commits" do
+    get "/:driver/commits", :commits do
       driver_source = URI.decode(params["driver"])
       count = (params["count"]? || 50).to_i
       commits = with_temporary_repository do |directory, repo|
@@ -47,7 +47,7 @@ module PlaceOS::Drivers::Api
     end
 
     # Commits at repo level
-    get "/repository_commits" do
+    get "/repository_commits", :repository_commits do
       count = (params["count"]? || 50).to_i
       commits = with_temporary_repository do |directory, repo|
         PlaceOS::Compiler::Git.repository_commits(repo, directory, count)
