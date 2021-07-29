@@ -40,6 +40,7 @@ services:
     hostname: build
     environment:
       TZ: $TZ
+      PLACEOS_BUILD_LOCAL_BUILDS: "true"
 
   redis:
     image: eqalpha/keydb
