@@ -4,6 +4,8 @@ module PlaceOS::Drivers::Api
   class Test < Application
     base "/test"
 
+    id_param :driver
+
     before_action :ensure_driver_compiled, only: [:run_spec, :create]
     before_action :ensure_spec_compiled, only: [:run_spec, :create]
 
@@ -21,11 +23,15 @@ module PlaceOS::Drivers::Api
     end
 
     # grab the list of available versions of the spec file
-    get "/:id/commits" do
-      spec = URI.decode(params["id"])
+    get "/:driver/commits", :test_commits do
+      spec = URI.decode(params["driver"])
       count = (params["count"]? || 50).to_i
 
-      render json: Compiler::Git.commits(spec, repository, working_directory, count)
+      commits = with_temporary_repository do |directory, repo|
+        PlaceOS::Compiler::Git.commits(spec, repo, directory, count)
+      end
+
+      render json: commits
     end
 
     # Run the spec and return success if the exit status is 0
