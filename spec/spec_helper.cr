@@ -17,3 +17,12 @@ Spec.before_suite do
     "https://github.com/placeos/private-drivers"
   )
 end
+
+def with_context(verb, path, json_headers = nil)
+  io = IO::Memory.new
+  ctx = context(verb, path, json_headers)
+  ctx.response.output = io
+  yield ctx
+  ctx.response.status_code.should eq 200
+  ctx
+end
