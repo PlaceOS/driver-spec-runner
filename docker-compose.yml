@@ -8,8 +8,8 @@ x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
 x-build-client-env: &build-client-env
-  BUILD_HOST: ${BUILD_HOST:-build}
-  BUILD_PORT: ${BUILD_URL:-3000}
+  PLACEOS_BUILD_HOST: ${PLACEOS_BUILD_HOST:-build}
+  PLACEOS_BUILD_PORT: ${PLACEOS_BUILD_PORT:-3000}
 
 services:
   test:
@@ -22,7 +22,8 @@ services:
       - ./spec:/app/spec
       - ./src:/app/src
       - ./.git:/app/.git
-      - ./drivers/:/app/drivers/
+      - ./drivers:/app/drivers
+      - ./repositories:/app/repositories
     depends_on:
       - redis
       - build
@@ -32,7 +33,7 @@ services:
       << : *build-client-env
       # Environment
       << : *deployment-env
-      GITHUB_ACTION: ${GITHUB_ACTION:-}
+      GITHUB_ACTION: ${GITHUB_ACTION:-""}
 
   build:
     image: placeos/build:${PLACE_BUILD_TAG:-nightly}
