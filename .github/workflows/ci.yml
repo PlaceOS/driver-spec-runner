@@ -3,8 +3,7 @@ on: push
 jobs:
   style:
     runs-on: ubuntu-latest
-    container:
-      image: crystallang/crystal
+    container: crystallang/crystal
     steps:
       - uses: actions/checkout@v2
       - name: Format
@@ -17,6 +16,7 @@ jobs:
   test:
     name: "Test - crystal: ${{ matrix.crystal }}, stable: ${{ matrix.stable }}"
     continue-on-error: ${{ !matrix.stable }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -27,10 +27,9 @@ jobs:
         include:
           - crystal: nightly
             stable: false
-    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Run docker-compose test environment
-      run: ./test
-      env:
-          CRYSTAL_VERSION: ${{ matrix.crystal }}
+      - uses: actions/checkout@v2
+      - name: Run docker-compose test environment
+        run: ./test
+        env:
+            CRYSTAL_VERSION: ${{ matrix.crystal }}
