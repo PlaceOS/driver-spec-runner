@@ -39,6 +39,8 @@ services:
     image: placeos/build:${PLACE_BUILD_TAG:-nightly}
     restart: always
     hostname: build
+    volumes:
+      - ./repositories:/app/repositories
     environment:
       TZ: $TZ
       PLACEOS_BUILD_LOCAL_BUILDS: "true"
