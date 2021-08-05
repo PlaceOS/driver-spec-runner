@@ -9,6 +9,25 @@ module PlaceOS::Drivers::Api
 
     id_param :driver
 
+    # Build a drvier, optionally based on the version specified
+    #
+    def create
+      Api::Build.build_driver
+    end
+
+    # Delete a built driver
+    #
+    def destroy
+      entrypoint = URI.decode(route_params["driver"])
+      commit = params["commit"]?.presence
+
+      binary_store.query(entrypoint: entrypoint, commit: commit).each do |e|
+        File.delete binary_store.path(e) rescue nil
+      end
+
+      head :ok
+    end
+
     # list the available files
     def index
       compiled = params["compiled"]?
@@ -56,11 +75,11 @@ module PlaceOS::Drivers::Api
       render json: commits
     end
 
-    # Build a drvier, optionally based on the version specified
-    #
-    def create
-      Api::Build.build_driver
-    end
+    ################################################################################################
+
+    class_getter binary_store = PlaceOS::Build::Filesystem.new
+    getter binary_store : PlaceOS::Build::Filesystem { Api::Build.binary_store }
+    getter driver_path : String = ""
 
     macro build_driver
       commit = params["commit"]?.presence
@@ -95,24 +114,6 @@ module PlaceOS::Drivers::Api
       in PlaceOS::Build::Compilation::Failure
         render :not_acceptable, json: result
       end
-    end
-
-    getter driver_path : String = ""
-
-    class_getter binary_store = PlaceOS::Build::Filesystem.new
-    getter binary_store : PlaceOS::Build::Filesystem { Api::Build.binary_store }
-
-    # Delete a built driver
-    #
-    def destroy
-      entrypoint = URI.decode(params["driver"])
-      commit = params["commit"]?.presence
-
-      binary_store.query(entrypoint: entrypoint, commit: commit).each do |e|
-        File.delete binary_store.path(e) rescue nil
-      end
-
-      head :ok
     end
   end
 end

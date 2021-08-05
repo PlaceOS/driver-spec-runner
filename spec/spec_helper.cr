@@ -9,14 +9,33 @@ require "../lib/action-controller/spec/curl_context"
 
 require "placeos-compiler"
 
+class MockServer
+  include ActionController::Router
+
+  def initialize
+    init_routes
+  end
+
+  private def init_routes
+    {% for klass in ActionController::Base::CONCRETE_CONTROLLERS %}
+      {{klass}}.__init_routes__(self)
+    {% end %}
+  end
+end
+
+MOCK_SERVER = MockServer.new
+
 abstract class PlaceOS::Drivers::Api::Application < ActionController::Base
-  def self.with_request(verb, path, json_headers = nil, expect_failure : Bool = false)
+  def self.with_request(verb, path, expect_failure = false)
     io = IO::Memory.new
-    ctx = context(verb, path, json_headers)
-    ctx.response.output = io
-    yield new(ctx)
-    ctx.response.status.success?.should (expect_failure ? be_false : be_true)
-    ctx
+    context = context(verb.upcase, path)
+    MOCK_SERVER.route_handler.search_route(context)
+    context.response.output = io
+
+    yield new(context)
+
+    context.response.status.success?.should (expect_failure ? be_false : be_true)
+    context
   end
 end
 
