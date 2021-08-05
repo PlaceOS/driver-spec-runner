@@ -36,6 +36,9 @@ module PlaceOS::Drivers::Api
 
     # Run the spec and return success if the exit status is 0
     def create
+      ensure_driver_compiled
+      ensure_spec_compiled
+
       debug = params["debug"]? == "true"
 
       io = IO::Memory.new
@@ -49,6 +52,9 @@ module PlaceOS::Drivers::Api
 
     # WS watch the output from running specs
     ws "/run_spec", :run_spec do |socket|
+      ensure_driver_compiled
+      ensure_spec_compiled
+
       debug = params["debug"]? == "true"
 
       # Run the spec and pipe all the IO down the websocket
