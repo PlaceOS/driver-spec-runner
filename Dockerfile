@@ -1,8 +1,10 @@
-ARG node_version=12
-ARG crystal_version=1.0.0
+ARG node_version=14
+ARG crystal_version=1.1.1
 
 FROM node:${node_version}-alpine as frontend-build
+
 WORKDIR /frontend
+
 COPY /frontend/package*.json  /frontend
 
 RUN npm install -g @angular/cli @angular-builders/custom-webpack
@@ -29,7 +31,6 @@ RUN apk add --update --no-cache \
   gdb \
   iputils \
   libssh2-static \
-  tzdata \
   yaml-static
 
 # Add trusted CAs for communicating with external services
