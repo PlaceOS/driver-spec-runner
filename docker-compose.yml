@@ -11,6 +11,9 @@ x-build-client-env: &build-client-env
   PLACEOS_BUILD_HOST: ${PLACEOS_BUILD_HOST:-build}
   PLACEOS_BUILD_PORT: ${PLACEOS_BUILD_PORT:-3000}
 
+volumes:
+  repositories:
+
 services:
   test:
     build:
@@ -23,7 +26,7 @@ services:
       - ./src:/app/src
       - ./.git:/app/.git
       - ./drivers:/app/drivers
-      - ./repositories:/app/repositories
+      - repositories:/app/repositories
     depends_on:
       - redis
       - build
@@ -40,7 +43,7 @@ services:
     restart: always
     hostname: build
     volumes:
-      - ./repositories:/app/repositories
+      - repositories:/app/repositories
     environment:
       TZ: $TZ
       PLACEOS_BUILD_LOCAL_BUILDS: "true"
