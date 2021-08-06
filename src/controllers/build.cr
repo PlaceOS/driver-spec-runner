@@ -12,7 +12,7 @@ module PlaceOS::Drivers::Api
     # Build a drvier, optionally based on the version specified
     #
     def create
-      Api::Build.build_driver
+      compilation_response(build_driver(params["driver"], params["commit"]?, params["force_recompile"]?))
     end
 
     # Delete a built driver
@@ -73,47 +73,6 @@ module PlaceOS::Drivers::Api
       end
 
       render json: commits
-    end
-
-    ################################################################################################
-
-    class_getter binary_store = PlaceOS::Build::Filesystem.new
-    getter binary_store : PlaceOS::Build::Filesystem { Api::Build.binary_store }
-    getter driver_path : String = ""
-
-    macro build_driver
-      commit = params["commit"]?.presence
-      entrypoint = params["driver"]
-      force_recompile = params["force_recompile"]?.presence.try &.downcase.in?("1", "true")
-
-      unless force_recompile || (existing = binary_store.query(entrypoint: entrypoint, commit: commit).first?).nil?
-        path = binary_store.path(existing)
-        @driver_path = path
-        response.headers["Location"] = URI.encode_www_form(path)
-        head :ok
-        return
-      end
-
-      commit = "HEAD" if commit.nil?
-
-      result = PlaceOS::Build::Client.client do |client|
-        client.repository_path = repository_path
-        client.compile(file: entrypoint, url: "local", commit: commit) do |key, io|
-          binary_store.write(key, io)
-        end
-      end
-
-      case result
-      in PlaceOS::Build::Compilation::Success
-        path = result.path
-        @driver_path = path
-        response.headers["Location"] = URI.encode_www_form(path)
-        render :created, json: binary_store.info(PlaceOS::Build::Executable.new(result.path))
-      in PlaceOS::Build::Compilation::NotFound
-        head :not_found
-      in PlaceOS::Build::Compilation::Failure
-        render :not_acceptable, json: result
-      end
     end
   end
 end

@@ -13,7 +13,7 @@ module PlaceOS::Drivers
 
     describe "POST /test" do
       it "should build a driver" do
-        Api::Test.with_request("POST", "/test?repository=private_drivers&driver=drivers/place/private_helper.cr&spec=drivers/place/private_helper_spec.cr&force=true") do |api|
+        Api::Test.with_request("POST", "/test?spec_commit=#{SPEC_COMMIT}&commit=#{DRIVER_COMMIT}&repository=private_drivers&driver=drivers/place/private_helper.cr&spec=drivers/place/private_helper_spec.cr&force=true") do |api|
           api.ensure_driver_compiled
           api.ensure_spec_compiled
           api.create

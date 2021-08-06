@@ -25,6 +25,9 @@ end
 
 MOCK_SERVER = MockServer.new
 
+DRIVER_COMMIT = "265518b"
+SPEC_COMMIT   = "d1b51ac"
+
 abstract class PlaceOS::Drivers::Api::Application < ActionController::Base
   def self.with_request(verb, path, expect_failure = false)
     io = IO::Memory.new

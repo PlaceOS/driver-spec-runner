@@ -6,6 +6,10 @@ module PlaceOS::Drivers::Api
   abstract class Application < ActionController::Base
     before_action :set_request_id
 
+    class_getter binary_store = PlaceOS::Build::Filesystem.new
+    getter binary_store : PlaceOS::Build::Filesystem { Application.binary_store }
+    getter driver_path : String = ""
+
     # Support request tracking
     def set_request_id
       Log.context.set(client_ip: client_ip)
@@ -33,6 +37,43 @@ module PlaceOS::Drivers::Api
       yield(temporary_working_directory, repository)
     ensure
       temporary_working_directory.try { |d| FileUtils.rm_rf(d) rescue nil }
+    end
+
+    def compilation_response(result)
+      case result
+      in PlaceOS::Build::Compilation::Success
+        path = result.path
+        @driver_path = path
+        response.headers["Location"] = URI.encode_www_form(path)
+        render :created, json: binary_store.info(PlaceOS::Build::Executable.new(result.path))
+      in PlaceOS::Build::Compilation::NotFound
+        head :not_found
+      in PlaceOS::Build::Compilation::Failure
+        render :not_acceptable, json: result
+      end
+    end
+
+    def build_driver(driver, commit, force_recompile)
+      commit = commit.presence
+      force_recompile = force_recompile.presence.try &.downcase.in?("1", "true")
+
+      unless force_recompile || (existing = binary_store.query(entrypoint: driver, commit: commit).first?).nil?
+        path = binary_store.path(existing)
+        @driver_path = path
+        response.headers["Location"] = URI.encode_www_form(path)
+        head :ok
+        return
+      end
+
+      # TODO: deprecate?
+      commit = "HEAD" if commit.nil?
+
+      PlaceOS::Build::Client.client do |client|
+        client.repository_path = repository_path
+        client.compile(file: driver, url: "local", commit: commit) do |key, io|
+          binary_store.write(key, io)
+        end
+      end
     end
   end
 end

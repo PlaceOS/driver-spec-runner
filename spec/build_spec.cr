@@ -15,7 +15,7 @@ module PlaceOS::Drivers::Api
     describe "POST /build" do
       it "should build a driver" do
         Api::Build
-          .with_request("POST", "/build?repository=private_drivers&driver=drivers/place/private_helper.cr", &.create)
+          .with_request("POST", "/build?commit=#{DRIVER_COMMIT}&repository=private_drivers&driver=drivers/place/private_helper.cr", &.create)
           .response
           .status_code.should eq(201)
       end
