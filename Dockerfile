@@ -1,13 +1,13 @@
-ARG node_version=14
-ARG crystal_version=1.1.1
+ARG NODE_VERSION=14
+ARG CRYSTAL_VERSION=1.1.1
 
-FROM node:${node_version}-alpine as frontend-build
+FROM node:${NODE_VERSION}-alpine as frontend-build
 
 WORKDIR /frontend
 
 COPY /frontend/package*.json  /frontend
 
-RUN npm install -g @angular/cli @angular-builders/custom-webpack
+RUN npm install --unsafe-perm=true -g @angular/cli @angular-builders/custom-webpack
 RUN npm clean-install
 
 # Copy source after install dependencies
@@ -18,7 +18,7 @@ RUN npx ng build --prod
 
 ###########################
 
-FROM crystallang/crystal:${crystal_version}-alpine
+FROM crystallang/crystal:${CRYSTAL_VERSION}-alpine
 WORKDIR /app
 
 # Install the latest version of
