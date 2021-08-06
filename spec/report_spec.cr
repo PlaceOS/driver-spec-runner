@@ -1,9 +1,11 @@
 require "./spec_helper"
 
+require "../src/report/cli"
+
 module PlaceOS::Drivers
-  describe "report" do
+  describe Report do
     with_server do
-      it "should have expected output" do
+      it "tests all drivers in `./drivers`" do
         io = IO::Memory.new
         Process.run("crystal", {"run", "./src/report.cr", "--", "-p 6000"}, output: io)
         output = io.to_s
