@@ -31,17 +31,16 @@ module PlaceOS::Drivers::Api
     # list the available files
     def index
       compiled = params["compiled"]?
-      if compiled
-        render json: PlaceOS::Build::Client.client &.query.map(&.filename)
-      else
-        result = Dir.cd(repository_path) do
-          Dir.glob("drivers/**/*.cr").reject! do |path|
-            path.ends_with?("_spec.cr") || !File.read_lines(path).any? &.includes?("< PlaceOS::Driver")
-          end
+      result = PlaceOS::Build::Client.client do |client|
+        if compiled
+          client.query.map(&.filename)
+        else
+          client.repository_path = repository_path
+          client.discover_drivers("local")
         end
-
-        render json: result
       end
+
+      render json: result
     end
 
     def show
