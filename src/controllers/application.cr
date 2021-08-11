@@ -53,16 +53,13 @@ module PlaceOS::Drivers::Api
       end
     end
 
-    def build_driver(driver, commit, force_recompile)
+    def build_driver(driver, commit, force_recompile) : PlaceOS::Build::Compilation::Result
       commit = commit.presence
       force_recompile = force_recompile.presence.try &.downcase.in?("1", "true")
 
       unless force_recompile || (existing = binary_store.query(entrypoint: driver, commit: commit).first?).nil?
         path = binary_store.path(existing)
-        @driver_path = path
-        response.headers["Location"] = URI.encode_www_form(path)
-        head :ok
-        return
+        return PlaceOS::Build::Compilation::Success.new(path, File.info(binary_store.path(existing)).modification_time)
       end
 
       # TODO: deprecate?
