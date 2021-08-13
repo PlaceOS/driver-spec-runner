@@ -11,6 +11,14 @@ module PlaceOS::Drivers::Api
 
     PLACE_DRIVERS_DIR = "../../#{Path[Dir.current].basename}"
 
+    getter? debug : Bool do
+      !!params["debug"]?.presence.try(&.downcase.in?("1", "true"))
+    end
+
+    getter count : Int32 do
+      params["count"]?.presence.try &.to_i? || 50
+    end
+
     # Specs available
     def index
       result = Dir.cd(repository_path) do
@@ -22,17 +30,12 @@ module PlaceOS::Drivers::Api
     # grab the list of available versions of the spec file
     get "/:driver/commits", :test_commits do
       spec = URI.decode(params["driver"])
-      count = (params["count"]? || 50).to_i
 
       commits = with_temporary_repository do |directory, repo|
         PlaceOS::Compiler::Git.commits(spec, repo, directory, count)
       end
 
       render json: commits
-    end
-
-    getter? debug : Bool do
-      !!params["debug"]?.presence.try(&.downcase.in?("1", "true"))
     end
 
     # Run the spec and return success if the exit status is 0
@@ -79,11 +82,11 @@ module PlaceOS::Drivers::Api
     macro ensure_compilation
       driver_result = build_driver(params["driver"], params["commit"]?, params["force"]?.presence || params["force_recompile"]?)
       return compilation_response(driver_result) unless driver_result.is_a? PlaceOS::Build::Compilation::Success
-      @driver_path = driver_result.path
+      @driver_path = binary_store.path(driver_result.executable)
 
       spec_result = build_driver(params["spec"], params["spec_commit"]?, params["force"]?.presence || params["force_recompile"]?)
       return compilation_response(spec_result) unless spec_result.is_a? PlaceOS::Build::Compilation::Success
-      @spec_path = spec_result.path
+      @spec_path = binary_store.path(spec_result.executable)
     end
 
     GDB_SERVER_PORT = ENV["GDB_SERVER_PORT"]? || "4444"
