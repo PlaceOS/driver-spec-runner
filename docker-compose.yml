@@ -22,11 +22,14 @@ services:
       args:
         CRYSTAL_VERSION: ${CRYSTAL_VERSION:-1.1.1}
     volumes:
-      - ./spec:/app/spec
-      - ./src:/app/src
-      - ./.git:/app/.git
-      - ./drivers:/app/drivers
-      - repositories:/app/repositories
+      - ${PWD}/spec:/app/spec
+      - ${PWD}/src:/app/src
+      - ${PWD}/src:/app/local/src
+      - ${PWD}/repositories:/app/repositories
+      - ${PWD}/.git:/app/repositories/local/.git
+      - ${PWD}/shard.yml:/app/repositories/local/shard.yml
+      - ${PWD}/shard.lock:/app/repositories/local/shard.lock
+      - ${PWD}/drivers:/app/repositories/local/drivers
     depends_on:
       - redis
       - build
@@ -43,7 +46,12 @@ services:
     restart: always
     hostname: build
     volumes:
-      - repositories:/app/repositories
+      - ${PWD}/repositories:/app/repositories
+      - ${PWD}/src:/app/local/src
+      - ${PWD}/.git:/app/repositories/local/.git
+      - ${PWD}/shard.yml:/app/repositories/local/shard.yml
+      - ${PWD}/shard.lock:/app/repositories/local/shard.lock
+      - ${PWD}/drivers:/app/repositories/local/drivers
     environment:
       TZ: $TZ
       PLACEOS_BUILD_LOCAL_BUILDS: "true"
