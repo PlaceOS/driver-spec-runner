@@ -23,6 +23,7 @@ module PlaceOS::Drivers::Api
 
     describe "GET /build/driver/:driver" do
       it "should list compiled versions" do
+        Api::Build.with_request("POST", "/build?commit=#{DRIVER_COMMIT}&repository=private_drivers&driver=drivers/place/private_helper.cr", &.create)
         context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fprivate_helper.cr?repository=private_drivers", &.show)
 
         Array(String).from_json(context.response.output.to_s).first.should start_with "drivers_place_private_helper_"
@@ -32,7 +33,7 @@ module PlaceOS::Drivers::Api
     describe "GET /build/driver/:driver/commits" do
       it "should list commits" do
         context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fprivate_helper.cr/commits?repository=private_drivers", &.commits)
-        Array(String).from_json(context.response.output.to_s).size.should eq(1)
+        Array(PlaceOS::Compiler::Git::Commit).from_json(context.response.output.to_s).should_not be_empty
       end
     end
 

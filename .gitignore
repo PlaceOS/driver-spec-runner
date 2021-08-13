@@ -49,5 +49,5 @@ testem.log
 .DS_Store
 Thumbs.db
 bin
-repositories/*
+repositories
 lib

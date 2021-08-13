@@ -113,11 +113,11 @@ module PlaceOS::Drivers
       unit.task.done(yellow "testing")
       state_channel.send Datum.tested(unit.driver)
 
-      params = URI::Params.new({
-        "driver" => [unit.driver],
-        "spec"   => [unit.spec],
-        "force"  => ["true"],
-      })
+      params = URI::Params{
+        "driver" => unit.driver,
+        "spec"   => unit.spec,
+        "force"  => "true",
+      }
 
       uri = URI.new(path: "/test", query: params)
 

@@ -93,7 +93,6 @@ module PlaceOS::Drivers::Api
 
     def launch_spec(io, debug)
       io << "\nLaunching spec runner\n"
-
       if debug
         exit_code = Process.run(
           "gdbserver",

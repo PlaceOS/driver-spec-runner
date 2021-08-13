@@ -39,7 +39,6 @@ module PlaceOS::Drivers::Api
           client.discover_drivers("local")
         end
       end
-
       render json: result
     end
 

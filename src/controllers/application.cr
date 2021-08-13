@@ -19,7 +19,7 @@ module PlaceOS::Drivers::Api
     getter working_directory : String = Path["./repositories"].expand.to_s
 
     getter repository : String do
-      params["repository"]?.presence || "drivers"
+      params["repository"]?.presence || "local"
     end
 
     # Builds and validates the path to the repository
@@ -32,7 +32,10 @@ module PlaceOS::Drivers::Api
       Dir.mkdir_p(temporary_working_directory)
 
       # Copy the repository to the temporary working directory
-      FileUtils.cp_r(repository_path, File.join(temporary_working_directory, repository))
+      destination = File.join(temporary_working_directory, repository)
+      unless Process.run("cp", {"-R", repository_path, destination}).success?
+        raise "Failed to run `cp -R #{repository_path} #{destination}`"
+      end
 
       yield(temporary_working_directory, repository)
     ensure
