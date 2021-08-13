@@ -77,11 +77,11 @@ module PlaceOS::Drivers::Api
     end
 
     macro ensure_compilation
-      driver_result = build_driver(params["driver"], params["commit"]?, params["force_recompile"]?)
+      driver_result = build_driver(params["driver"], params["commit"]?, params["force"]?.presence || params["force_recompile"]?)
       return compilation_response(driver_result) unless driver_result.is_a? PlaceOS::Build::Compilation::Success
       @driver_path = driver_result.path
 
-      spec_result = build_driver(params["spec"], params["spec_commit"]?, params["force_recompile"]?)
+      spec_result = build_driver(params["spec"], params["spec_commit"]?, params["force"]?.presence || params["force_recompile"]?)
       return compilation_response(spec_result) unless spec_result.is_a? PlaceOS::Build::Compilation::Success
       @spec_path = spec_result.path
     end

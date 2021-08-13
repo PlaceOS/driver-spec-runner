@@ -30,7 +30,7 @@ module PlaceOS::Drivers::Api
     end
 
     describe "GET /build/driver/:driver/commits" do
-      it "should list possible versions" do
+      it "should list commits" do
         context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fprivate_helper.cr/commits?repository=private_drivers", &.commits)
         Array(String).from_json(context.response.output.to_s).size.should eq(1)
       end
