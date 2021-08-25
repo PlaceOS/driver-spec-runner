@@ -1,6 +1,6 @@
-module Place; end
+require "placeos-driver"
 
-class Place::SpecHelper < PlaceOS::Driver
+class SpecHelper < PlaceOS::Driver
   def implemented_in_driver
     "woot!"
   end

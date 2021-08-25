@@ -42,8 +42,9 @@ services:
       - ${PWD}/repositories:/app/repositories
       - ${PWD}:/app/repositories/local
     environment:
-      TZ: $TZ
       PLACEOS_BUILD_LOCAL_BUILDS: "true"
+      PLACEOS_ENABLE_TRACE: "true"
+      TZ: $TZ
 
   redis:
     image: eqalpha/keydb
