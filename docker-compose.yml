@@ -19,14 +19,10 @@ services:
       args:
         CRYSTAL_VERSION: ${CRYSTAL_VERSION:-1.1.1}
     volumes:
+      - ${PWD}/repositories:/app/repositories
       - ${PWD}/spec:/app/spec
       - ${PWD}/src:/app/src
-      - ${PWD}/src:/app/local/src
-      - ${PWD}/repositories:/app/repositories
-      - ${PWD}/.git:/app/repositories/local/.git
-      - ${PWD}/shard.yml:/app/repositories/local/shard.yml
-      - ${PWD}/shard.lock:/app/repositories/local/shard.lock
-      - ${PWD}/drivers:/app/repositories/local/drivers
+      - ${PWD}:/app/repositories/local
     depends_on:
       - redis
       - build
@@ -36,7 +32,7 @@ services:
       << : *build-client-env
       # Environment
       << : *deployment-env
-      GITHUB_ACTION: ${GITHUB_ACTION:-""}
+      GITHUB_ACTION: ${GITHUB_ACTION}
 
   build:
     image: placeos/build:${PLACE_BUILD_TAG:-nightly}
@@ -44,11 +40,7 @@ services:
     hostname: build
     volumes:
       - ${PWD}/repositories:/app/repositories
-      - ${PWD}/src:/app/local/src
-      - ${PWD}/.git:/app/repositories/local/.git
-      - ${PWD}/shard.yml:/app/repositories/local/shard.yml
-      - ${PWD}/shard.lock:/app/repositories/local/shard.lock
-      - ${PWD}/drivers:/app/repositories/local/drivers
+      - ${PWD}:/app/repositories/local
     environment:
       TZ: $TZ
       PLACEOS_BUILD_LOCAL_BUILDS: "true"
