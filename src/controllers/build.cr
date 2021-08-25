@@ -18,7 +18,7 @@ module PlaceOS::Drivers::Api
     # Delete a built driver
     #
     def destroy
-      entrypoint = URI.decode(route_params["driver"])
+      entrypoint = route_params["driver"]
       commit = params["commit"]?.presence
 
       binary_store.query(entrypoint: entrypoint, commit: commit).each do |e|
@@ -43,7 +43,7 @@ module PlaceOS::Drivers::Api
     end
 
     def show
-      entrypoint = URI.decode(params["driver"])
+      entrypoint = route_params["driver"]
       render json: binary_store.query(entrypoint: entrypoint)
     end
 
@@ -54,7 +54,7 @@ module PlaceOS::Drivers::Api
 
     # grab the list of available versions of file / which are built
     get "/:driver/commits", :commits do
-      driver_source = URI.decode(params["driver"])
+      driver_source = route_params["driver"]
       count = (params["count"]? || 50).to_i
       commits = with_temporary_repository do |directory, repo|
         PlaceOS::Compiler::Git.commits(driver_source, repo, directory, count)
