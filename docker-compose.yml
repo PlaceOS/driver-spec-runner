@@ -41,6 +41,7 @@ services:
     volumes:
       - ${PWD}/repositories:/app/repositories
       - ${PWD}:/app/repositories/local
+      - ${PWD}/bin/drivers:/app/bin/drivers
     environment:
       PLACEOS_BUILD_LOCAL_BUILDS: "true"
       PLACEOS_ENABLE_TRACE: "true"
