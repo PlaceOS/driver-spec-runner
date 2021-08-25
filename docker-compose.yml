@@ -20,9 +20,9 @@ services:
         CRYSTAL_VERSION: ${CRYSTAL_VERSION:-1.1.1}
     volumes:
       - ${PWD}/repositories:/app/repositories
+      - ${PWD}:/app/repositories/local
       - ${PWD}/spec:/app/spec
       - ${PWD}/src:/app/src
-      - ${PWD}:/app/repositories/local
     depends_on:
       - redis
       - build

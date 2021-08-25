@@ -29,7 +29,7 @@ module PlaceOS::Drivers::Api
 
     # grab the list of available versions of the spec file
     get "/:driver/commits", :test_commits do
-      spec = URI.decode(params["driver"])
+      spec = route_params["driver"]
 
       commits = with_temporary_repository do |directory, repo|
         PlaceOS::Compiler::Git.commits(spec, repo, directory, count)
