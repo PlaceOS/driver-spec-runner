@@ -7,8 +7,8 @@ WORKDIR /frontend
 
 COPY /frontend/package*.json  /frontend
 
-RUN npm install --unsafe-perm=true -g @angular/cli @angular-builders/custom-webpack
-RUN npm clean-install
+RUN npm install --unsafe-perm=true -g @angular/cli @angular-builders/custom-webpack && \
+    npm clean-install
 
 # Copy source after install dependencies
 COPY frontend /frontend
@@ -48,9 +48,14 @@ COPY --from=frontend-build /frontend/dist/driver-spec-runner /app/www
 ENV PATH="$PATH:/app/bin"
 
 # Build App
-RUN shards build --error-trace --release --production --ignore-crystal-version
-
-RUN rm -r lib src
+RUN shards build \
+      --error-trace \
+      --release \
+      --production \
+      --ignore-crystal-version \
+    && \
+    # Remove sources
+    rm -r lib src
 
 # Run the app binding on port 8080
 EXPOSE 8080
