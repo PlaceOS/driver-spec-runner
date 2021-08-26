@@ -44,14 +44,5 @@ module PlaceOS::Drivers::Api
         Array(PlaceOS::Compiler::Git::Commit).from_json(context.response.output.to_s).should_not be_empty
       end
     end
-
-    describe "DELETE /build/driver/:driver" do
-      it "should delete all compiled versions of a driver" do
-        Api::Build.with_request("DELETE", "/build/drivers%2Fplace%2Fprivate_helper.cr?repository=private_drivers", &.destroy)
-
-        context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fprivate_helper_spec.cr?repository=private_drivers", &.show)
-        Array(String).from_json(context.response.output.to_s).should be_empty
-      end
-    end
   end
 end
