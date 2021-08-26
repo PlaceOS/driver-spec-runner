@@ -65,8 +65,9 @@ module PlaceOS::Drivers::Api
         return PlaceOS::Build::Compilation::Success.new(path, File.info(binary_store.path(existing)).modification_time)
       end
 
-      # TODO: deprecate?
-      commit = "HEAD" if commit.nil?
+      if commit.nil? || commit == "HEAD"
+        commit = PlaceOS::Compiler::Git.current_repository_commit(repository, working_directory)
+      end
 
       PlaceOS::Build::Client.client do |client|
         client.repository_path = repository_path
