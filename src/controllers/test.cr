@@ -92,6 +92,8 @@ module PlaceOS::Drivers::Api
     GDB_SERVER_PORT = ENV["GDB_SERVER_PORT"]? || "4444"
 
     def launch_spec(io, debug)
+      memory = IO::Memory.new
+      io = IO::MultiWriter.new(io, memory)
       io << "\nLaunching spec runner\n"
       if debug
         exit_code = Process.run(
@@ -135,6 +137,8 @@ module PlaceOS::Drivers::Api
 
         exit_code = status.not_nil!.exit_code
         io << "spec runner exited with #{exit_code}\n"
+        Log.error { memory.to_s } unless exit_code.zero?
+
         io.close
         exit_code
       end
