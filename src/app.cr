@@ -34,6 +34,17 @@ end
 puts "Launching #{APP_NAME} v#{VERSION}"
 server = ActionController::Server.new(port, host)
 
+begin
+  puts "Attempting to connect to PlaceOS Build"
+  PlaceOS::Build::Client.client &.healthcheck
+rescue
+  abort <<-ERROR
+  Failed to connect to `build` service.
+  Ensure you have updated to the latest drivers repository or private-drivers template.
+  See https://github.com/PlaceOS/drivers for further information.
+  ERROR
+end
+
 # Start clustering
 server.cluster(process_count, "-w", "--workers") if cluster
 
