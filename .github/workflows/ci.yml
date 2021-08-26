@@ -30,8 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run docker-compose test environment
-        continue-on-error: true
         run: ./test
         env:
             CRYSTAL_VERSION: ${{ matrix.crystal }}
       - run: docker-compose logs build
+        if: ${{ failure() }}
