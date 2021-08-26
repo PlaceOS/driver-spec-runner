@@ -28,7 +28,7 @@ module PlaceOS::Drivers::Api
       head :ok
     end
 
-    # list the available files
+    # List the available files
     def index
       compiled = params["compiled"]?
       result = PlaceOS::Build::Client.client do |client|
@@ -44,7 +44,7 @@ module PlaceOS::Drivers::Api
 
     def show
       entrypoint = route_params["driver"]
-      render json: binary_store.query(entrypoint: entrypoint)
+      render json: PlaceOS::Build::Client.client(&.query(file: entrypoint))
     end
 
     # grab the list of available repositories
