@@ -15,19 +15,6 @@ module PlaceOS::Drivers::Api
       compilation_response(build_driver(params["driver"], params["commit"]?, params["force_recompile"]?))
     end
 
-    # Delete a built driver
-    #
-    def destroy
-      entrypoint = route_params["driver"]
-      commit = params["commit"]?.presence
-
-      binary_store.query(entrypoint: entrypoint, commit: commit).each do |e|
-        File.delete binary_store.path(e) rescue nil
-      end
-
-      head :ok
-    end
-
     # List the available files
     def index
       compiled = params["compiled"]?
