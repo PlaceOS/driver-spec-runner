@@ -46,7 +46,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache
           build-args: |
             CRYSTAL_VERSION=${{ matrix.crystal }}
-          tags: placeos/drivers-spec:crystal-${{matrix.crystal}}
+          tags: placeos/drivers-spec:crystal-build-${{matrix.crystal}}
           labels: |
             org.opencontainers.image.vendor=Place Technology Limited
             org.opencontainers.image.revision=${{ github.sha }}
