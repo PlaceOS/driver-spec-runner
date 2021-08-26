@@ -1,15 +1,15 @@
 version: "3.7"
 
-x-deployment-env: &deployment-env
-  ENV: ${ENV:-development}
-  TZ: $TZ
-
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
 x-build-client-env: &build-client-env
   PLACEOS_BUILD_HOST: ${PLACEOS_BUILD_HOST:-build}
   PLACEOS_BUILD_PORT: ${PLACEOS_BUILD_PORT:-3000}
+
+volumes:
+  repositories:
+  drivers:
 
 services:
   test:
@@ -19,10 +19,12 @@ services:
       args:
         CRYSTAL_VERSION: ${CRYSTAL_VERSION:-1.1.1}
     volumes:
-      - ${PWD}/repositories:/app/repositories
       - ${PWD}:/app/repositories/local
       - ${PWD}/spec:/app/spec
       - ${PWD}/src:/app/src
+      - type: volume
+        source: repositories
+        target: /app/repositories
     depends_on:
       - redis
       - build
@@ -31,7 +33,6 @@ services:
       << : *redis-client-env
       << : *build-client-env
       # Environment
-      << : *deployment-env
       GITHUB_ACTION: ${GITHUB_ACTION}
 
   build:
@@ -39,17 +40,18 @@ services:
     restart: always
     hostname: build
     volumes:
-      - ${PWD}/repositories:/app/repositories
       - ${PWD}:/app/repositories/local
-      - ${PWD}/bin/drivers:/app/bin/drivers
+      - type: volume
+        source: drivers
+        target: /app/bin/drivers
+      - type: volume
+        source: repositories
+        target: /app/repositories
     environment:
-      PLACEOS_BUILD_LOCAL_BUILDS: "true"
+      PLACEOS_BUILD_LOCAL: "true"
       PLACEOS_ENABLE_TRACE: "true"
-      TZ: $TZ
 
   redis:
     image: eqalpha/keydb
     restart: always
     hostname: redis
-    environment:
-      TZ: $TZ
