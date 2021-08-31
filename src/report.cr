@@ -7,6 +7,7 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("-h HOST", "--host=HOST", "Specifies the server host") { |h| Settings.host = h }
   parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| Settings.port = p.to_i }
   parser.on("-t TESTS", "--tests=TESTS", "Number of tests to run in parallel") { |t| Settings.tests = t.to_i }
+  parser.on("-b BUILDS", "--builds=BUILDS", "Number of drivers to compile in parallel") { |b| Settings.builds = b.to_i }
   parser.on("--no-colour", "Removes colour from the report") { Settings.no_colour = true }
   parser.on("--basic-render", "Stop CLI rendering tricks") { Settings.standard_render = false }
 
