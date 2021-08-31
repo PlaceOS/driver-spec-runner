@@ -173,7 +173,7 @@ module PlaceOS::Drivers
 
       # Feed units through pipeline in batches
       spawn do
-        drivers.in_groups_of(6).each do |group|
+        drivers.in_groups_of(Settings.builds).each do |group|
           units = group.compact.map do |driver|
             task = Griffith.create_task(driver)
             task.done(blue "waiting...")
