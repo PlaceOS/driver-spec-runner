@@ -70,7 +70,7 @@ module PlaceOS::Drivers
     alias Build = CompileOnly | Test
 
     getter done_channel : Channel(Nil) = Channel(Nil).new
-    getter build_channel : Channel(Build) = Channel(Build).new(1)
+    getter build_channel : Channel(Build) = Channel(Build).new(Settings.builds)
     getter test_channel : Channel(Test) = Channel(Test).new(Settings.tests)
 
     def stop
