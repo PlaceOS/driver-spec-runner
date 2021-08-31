@@ -14,23 +14,28 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test:
-    name: "Test - crystal: ${{ matrix.crystal }}, stable: ${{ matrix.stable }}"
+    name: "crystal: ${{ matrix.crystal }}, MT: ${{ matrix.MT }}, stable: ${{ matrix.stable }}"
     continue-on-error: ${{ !matrix.stable }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         stable: [true]
+        MT: [false]
         crystal:
           - 1.0.0
           - 1.1.1
         include:
+          - crystal: 1.1.1
+            MT: true
+            stable: false
           - crystal: nightly
+            MT: false
             stable: false
     steps:
       - uses: actions/checkout@v2
       - name: Run docker-compose test environment
-        run: ./test
+        run: ./test ${{ matrix.MT && '-Dpreview_mt' || '' }}
         env:
             CRYSTAL_VERSION: ${{ matrix.crystal }}
       - run: docker-compose logs build
