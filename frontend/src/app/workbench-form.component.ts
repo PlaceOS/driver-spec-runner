@@ -20,6 +20,7 @@ import { SpecTestService } from './services/test.service';
                     <mat-select
                         [ngModel]="driver_commit | async"
                         (ngModelChange)="setCommit($event)"
+                        placeholder="Latest Commit"
                     >
                         <mat-option
                             *ngFor="let commit of driver_commits | async"
@@ -34,19 +35,7 @@ import { SpecTestService } from './services/test.service';
         <div class="flex space-x-2 flex-wrap">
             <div class="py-2 flex flex-col flex-1">
                 <label>Spec File</label>
-                <mat-form-field appearance="outline">
-                    <mat-select
-                        [ngModel]="spec_file | async"
-                        (ngModelChange)="setSpecFile($event)"
-                    >
-                        <mat-option
-                            *ngFor="let spec of specs | async"
-                            [value]="spec"
-                        >
-                            {{ spec }}
-                        </mat-option>
-                    </mat-select>
-                </mat-form-field>
+                <div class="py-4">{{ spec_file | async }}</div>
             </div>
             <div class="py-2 flex flex-col flex-1">
                 <label>Spec File Commit</label>
@@ -54,6 +43,7 @@ import { SpecTestService } from './services/test.service';
                     <mat-select
                         [ngModel]="spec_commit | async"
                         (ngModelChange)="setSpecCommit($event)"
+                        placeholder="Latest Commit"
                     >
                         <mat-option
                             *ngFor="let commit of spec_commits | async"
@@ -67,17 +57,11 @@ import { SpecTestService } from './services/test.service';
         </div>
         <div class="py-2 flex items-center">
             <mat-checkbox
-                [ngModel]="(settings | async).force"
-                (ngModelChange)="setSettings({ force: $event })"
-                >Force Recompilation</mat-checkbox
-            >
-        </div>
-        <div class="py-2 flex items-center">
-            <mat-checkbox
                 [ngModel]="(settings | async).debug_symbols"
                 (ngModelChange)="setSettings({ debug_symbols: $event })"
-                >Compile with Debug Symbols</mat-checkbox
             >
+                Compile with Debug Symbols
+            </mat-checkbox>
         </div>
     `,
     styles: [

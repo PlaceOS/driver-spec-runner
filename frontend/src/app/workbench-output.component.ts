@@ -6,9 +6,9 @@ import { SpecTestService } from './services/test.service';
 @Component({
     selector: 'workbench-output',
     template: `
-        <div name="output" [class]="'absolute inset-0 flex flex-col border-t border-white bg-gray-800 text-white ' + (fullscreen ? 'fullscreen' : '')">
+        <div name="output" [class]="'absolute inset-0 flex flex-col border-t border-white text-white ' + (fullscreen ? 'fullscreen' : '')">
             <div class="flex items-center p-2 w-full">
-                <button mat-button (click)="runTests()">Run!</button>
+                <button mat-button (click)="runTests()">Run Tests</button>
                 <div class="flex-1 w-0"></div>
                 <button mat-icon-button (click)="fullscreen = !fullscreen">
                     <i class="material-icons">{{ fullscreen ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}</i>
@@ -30,12 +30,13 @@ import { SpecTestService } from './services/test.service';
         }
 
         [name="output"] {
+            background-color: #424242;
             transition: top 200ms;
             top: 0;
         }
 
         .fullscreen {
-            top: -24rem;
+            top: -21.5rem;
         }
     `]
 })
