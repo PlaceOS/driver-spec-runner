@@ -52,7 +52,7 @@ module PlaceOS::Drivers::Api
       in PlaceOS::Build::Compilation::NotFound
         head :not_found
       in PlaceOS::Build::Compilation::Failure
-        render :not_acceptable, json: result
+        render :not_acceptable, json: result.error
       end
     end
 
