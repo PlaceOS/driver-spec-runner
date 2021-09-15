@@ -138,6 +138,7 @@ module PlaceOS::Drivers
         else
           spawn { log_compilation_failure(unit, response.body) }
           unit.task.fail(red "failed")
+          puts "\n#{response.body}\n" if Settings.output_errors?
           state_channel.send Datum.failed(unit.driver)
         end
       end

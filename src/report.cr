@@ -9,6 +9,7 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.on("-t TESTS", "--tests=TESTS", "Number of tests to run in parallel") { |t| Settings.tests = t.to_i }
   parser.on("-b BUILDS", "--builds=BUILDS", "Number of drivers to compile in parallel") { |b| Settings.builds = b.to_i }
   parser.on("--no-colour", "Removes colour from the report") { Settings.no_colour = true }
+  parser.on("--verbose", "Output build failures") { Settings.output_errors = true }
   parser.on("--basic-render", "Stop CLI rendering tricks") { Settings.standard_render = false }
 
   parser.unknown_args do |before_dash, after_dash|
