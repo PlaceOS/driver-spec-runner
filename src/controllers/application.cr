@@ -7,7 +7,9 @@ module PlaceOS::Drivers::Api
     before_action :set_request_id
 
     class_getter binary_store = PlaceOS::Build::Filesystem.new
+
     getter binary_store : PlaceOS::Build::Filesystem { Application.binary_store }
+
     getter driver_path : String = ""
 
     # Support request tracking
@@ -59,11 +61,6 @@ module PlaceOS::Drivers::Api
     def build_driver(driver, commit, force_recompile) : PlaceOS::Build::Compilation::Result
       commit = commit.presence
       force_recompile = force_recompile.presence.try &.downcase.in?("1", "true")
-
-      unless force_recompile || (existing = binary_store.query(entrypoint: driver, commit: commit).first?).nil?
-        path = binary_store.path(existing)
-        return PlaceOS::Build::Compilation::Success.new(path, File.info(binary_store.path(existing)).modification_time)
-      end
 
       if commit.nil? || commit == "HEAD"
         commit = PlaceOS::Compiler::Git.current_repository_commit(repository, working_directory)
