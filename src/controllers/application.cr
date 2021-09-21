@@ -60,7 +60,7 @@ module PlaceOS::Drivers::Api
 
     def build_driver(driver, commit, force_recompile) : PlaceOS::Build::Compilation::Result
       commit = commit.presence
-      force_recompile = force_recompile.presence.try &.downcase.in?("1", "true")
+      force_recompile = !!(force_recompile.presence.try &.downcase.in?("1", "true"))
 
       if commit.nil? || commit == "HEAD"
         commit = PlaceOS::Compiler::Git.current_repository_commit(repository, working_directory)
@@ -68,7 +68,7 @@ module PlaceOS::Drivers::Api
 
       PlaceOS::Build::Client.client do |client|
         client.repository_path = repository_path
-        client.compile(file: driver, url: "local", commit: commit) do |key, io|
+        client.compile(file: driver, url: "local", commit: commit, force_recompile: force_recompile) do |key, io|
           binary_store.write(key, io)
         end
       end
