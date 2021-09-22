@@ -5,13 +5,22 @@ FROM node:${NODE_VERSION}-alpine as frontend-build
 
 WORKDIR /frontend
 
+RUN npm install --unsafe-perm=true -g @angular/cli @angular-builders/custom-webpack
+
 COPY /frontend/package*.json  /frontend
 
-RUN npm install --unsafe-perm=true -g @angular/cli @angular-builders/custom-webpack && \
-    npm clean-install
+RUN npm ci
 
 # Copy source after install dependencies
-COPY frontend /frontend
+COPY frontend/src \
+     frontend/angular.json \
+     frontend/ngsw-config.json \
+     frontend/tailwind.config.js \
+     frontend/tsconfig.app.json \
+     frontend/tsconfig.json \
+     frontend/tsconfig.spec.json \
+     frontend/webpack.config.js \
+     /frontend/
 
 # Build the frontend
 RUN npx ng build --prod
