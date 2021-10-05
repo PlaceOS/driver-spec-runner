@@ -138,6 +138,7 @@ module PlaceOS::Drivers
         else
           spawn { log_compilation_failure(unit, response.body) }
           unit.task.fail(red "failed")
+          puts "\n#{response.body}\n" if Settings.output_errors?
           state_channel.send Datum.failed(unit.driver)
         end
       end
@@ -173,7 +174,7 @@ module PlaceOS::Drivers
 
       # Feed units through pipeline in batches
       spawn do
-        drivers.in_groups_of(6).each do |group|
+        drivers.in_groups_of(Settings.builds).each do |group|
           units = group.compact.map do |driver|
             task = Griffith.create_task(driver)
             task.done(blue "waiting...")

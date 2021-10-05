@@ -27,7 +27,7 @@ shards:
 
   awscr-s3:
     git: https://github.com/taylorfinnell/awscr-s3.git
-    version: 0.8.3+git.commit.559518424669934ee6390541a6d88262ef75a370
+    version: 0.8.3
 
   awscr-signer:
     git: https://github.com/taylorfinnell/awscr-signer.git
@@ -56,6 +56,10 @@ shards:
   cron_parser:
     git: https://github.com/kostya/cron_parser.git
     version: 0.4.0
+
+  crunits:
+    git: https://github.com/spider-gazelle/crunits.git
+    version: 1.1.0
 
   db:
     git: https://github.com/crystal-lang/crystal-db.git
@@ -115,7 +119,7 @@ shards:
 
   lucky_router:
     git: https://github.com/luckyframework/lucky_router.git
-    version: 0.5.0
+    version: 0.5.1
 
   molinillo:
     git: https://github.com/crystal-lang/crystal-molinillo.git
@@ -141,25 +145,29 @@ shards:
     git: https://github.com/spider-gazelle/openssl_ext.git
     version: 2.1.5
 
+  pars:
+    git: https://github.com/place-labs/pars.git
+    version: 1.1.0
+
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
     version: 1.1.2
 
   placeos-build:
     git: https://github.com/placeos/build.git
-    version: 0.8.1
+    version: 0.10.0
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
-    version: 4.5.0
+    version: 4.8.0
 
   placeos-core-client:
     git: https://github.com/placeos/core-client.git
-    version: 0.2.0
+    version: 0.3.1
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 5.4.18
+    version: 5.7.2
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -167,7 +175,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 5.10.0
+    version: 5.10.1
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -198,12 +206,12 @@ shards:
     version: 1.2.3
 
   rethinkdb:
-    git: https://github.com/kingsleyh/crystal-rethinkdb.git
-    version: 0.3.0
+    git: https://github.com/place-labs/crystal-rethinkdb.git
+    version: 0.3.1+git.commit.af92ace5eb60e861a41b93456ac5d73b80feb7bb
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
-    version: 5.0.1
+    version: 5.0.2
 
   retriable: # Overridden
     git: https://github.com/sija/retriable.cr.git
