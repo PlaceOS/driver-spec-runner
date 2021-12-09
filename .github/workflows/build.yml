@@ -14,8 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         crystal:
-          - 1.0.0
           - 1.1.1
+          - 1.2.2
           - nightly
     steps:
       - name: Checkout release
