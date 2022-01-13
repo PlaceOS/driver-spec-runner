@@ -32,7 +32,7 @@ abstract class PlaceOS::Drivers::Api::Application < ActionController::Base
 
     yield new(context)
 
-    context.response.status.success?.should (expect_failure ? be_false : be_true)
+    context.response.status.success?.should(expect_failure ? be_false : be_true)
     context
   end
 end
