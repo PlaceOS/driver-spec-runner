@@ -16,6 +16,7 @@ jobs:
         crystal:
           - 1.1.1
           - 1.2.2
+          - 1.3.0
           - nightly
     steps:
       - name: Checkout release
