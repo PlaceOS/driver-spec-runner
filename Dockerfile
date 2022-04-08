@@ -28,6 +28,7 @@ RUN apk add --update --no-cache \
   ca-certificates \
   gdb \
   iputils \
+  lz4-static \
   libssh2-static \
   yaml-static
 

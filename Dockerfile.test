@@ -8,6 +8,7 @@ RUN apk add --update --no-cache \
             bash \
             ca-certificates \
             gdb \
+            lz4-static \
             iputils
 
 RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing watchexec

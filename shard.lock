@@ -39,7 +39,7 @@ shards:
 
   bindata:
     git: https://github.com/spider-gazelle/bindata.git
-    version: 1.9.1
+    version: 1.10.0
 
   clip:
     git: https://github.com/erdnaxeli/clip.git
@@ -63,7 +63,7 @@ shards:
 
   db:
     git: https://github.com/crystal-lang/crystal-db.git
-    version: 0.10.1
+    version: 0.11.0
 
   debug:
     git: https://github.com/sija/debug.cr.git
@@ -121,6 +121,10 @@ shards:
     git: https://github.com/luckyframework/lucky_router.git
     version: 0.5.1
 
+  lz4:
+    git: https://github.com/naqvis/lz4.cr.git
+    version: 0.1.4
+
   molinillo:
     git: https://github.com/crystal-lang/crystal-molinillo.git
     version: 0.2.0
@@ -131,7 +135,7 @@ shards:
 
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
-    version: 1.10.0
+    version: 1.11.0
 
   open_api:
     git: https://github.com/elbywan/open_api.cr.git
@@ -139,7 +143,7 @@ shards:
 
   openapi-generator:
     git: https://github.com/place-labs/openapi-generator.git
-    version: 2.1.0+git.commit.d925772ae1f36c51c0665d743bba4ac6ca9466a8
+    version: 2.1.0+git.commit.a65ffc2f7dcc6a393e7d1f9229650b520d9525be
 
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
@@ -155,19 +159,19 @@ shards:
 
   placeos-build:
     git: https://github.com/placeos/build.git
-    version: 0.10.0
+    version: 0.11.1
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
-    version: 4.8.1
+    version: 4.9.0
 
   placeos-core-client:
     git: https://github.com/placeos/core-client.git
-    version: 0.3.1
+    version: 0.4.0
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 5.9.9
+    version: 6.2.1
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -175,7 +179,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 5.15.1
+    version: 6.7.0
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -211,7 +215,7 @@ shards:
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
-    version: 5.0.2
+    version: 5.0.4
 
   retriable: # Overridden
     git: https://github.com/sija/retriable.cr.git
@@ -227,7 +231,7 @@ shards:
 
   shards:
     git: https://github.com/crystal-lang/shards.git
-    version: 0.16.0
+    version: 0.17.0
 
   simple_retry:
     git: https://github.com/spider-gazelle/simple_retry.git
@@ -235,7 +239,7 @@ shards:
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.5.2
+    version: 1.5.3
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git

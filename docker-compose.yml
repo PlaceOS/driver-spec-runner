@@ -17,7 +17,7 @@ services:
       context: .
       dockerfile: Dockerfile.test
       args:
-        CRYSTAL_VERSION: ${CRYSTAL_VERSION:-1.1.1}
+        CRYSTAL_VERSION: ${CRYSTAL_VERSION:-1.4.0}
     volumes:
       - ${PWD}:/app/repositories/local
       - ${PWD}/spec:/app/spec
