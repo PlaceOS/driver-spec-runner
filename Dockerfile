@@ -28,8 +28,9 @@ RUN apk add --update --no-cache \
   ca-certificates \
   gdb \
   iputils \
-  lz4-static \
   libssh2-static \
+  lz4-dev \
+  lz4-static \
   yaml-static
 
 # Add trusted CAs for communicating with external services
