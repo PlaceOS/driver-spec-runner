@@ -13,16 +13,17 @@ volumes:
 
 services:
   test:
-    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.2.1}
+    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.4.1}
     volumes:
-      - ${PWD}:/app/repositories/local
-      - ${PWD}/spec:/app/spec
-      - ${PWD}/src:/app/src
-      - ${PWD}/lib:/app/lib
+      - ${PWD}/lib:/app/lib:rw
+      - ${PWD}/bin:/app/bin:rw
+      - ${PWD}/coverage:/app/coverage
       - ${PWD}/shard.lock:/app/shard.lock
       - ${PWD}/shard.override.yml:/app/shard.override.yml
       - ${PWD}/shard.yml:/app/shard.yml
-      - ${PWD}/coverage:/app/coverage
+      - ${PWD}/spec:/app/spec
+      - ${PWD}/src:/app/src
+      - ${PWD}:/app/repositories/local
       - type: volume
         source: repositories
         target: /app/repositories
