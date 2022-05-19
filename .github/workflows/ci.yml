@@ -1,5 +1,9 @@
 name: CI
-on: push
+on:
+  push:
+  schedule:
+    - cron: "0 3 * * 2" # Every Tuesday at 3:00
+
 jobs:
   crystal-style:
     uses: PlaceOS/.github/.github/workflows/crystal-style.yml@main

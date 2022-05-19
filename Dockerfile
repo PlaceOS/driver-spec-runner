@@ -1,5 +1,5 @@
 ARG NODE_VERSION=14
-ARG CRYSTAL_VERSION=1.2.2
+ARG CRYSTAL_VERSION=1.4.1
 
 FROM node:${NODE_VERSION}-alpine as frontend-build
 
@@ -29,6 +29,8 @@ RUN apk add --update --no-cache \
   gdb \
   iputils \
   libssh2-static \
+  lz4-dev \
+  lz4-static \
   yaml-static
 
 # Add trusted CAs for communicating with external services
