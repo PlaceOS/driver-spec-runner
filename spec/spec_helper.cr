@@ -27,7 +27,7 @@ abstract class PlaceOS::Drivers::Api::Application < ActionController::Base
   def self.with_request(verb, path, expect_failure = false)
     io = IO::Memory.new
     context = context(verb.upcase, path)
-    MOCK_SERVER.route_handler.search_route(context)
+    MOCK_SERVER.route_handler.search_route(verb, path, "#{verb}#{path}", context)
     context.response.output = io
 
     yield new(context)
