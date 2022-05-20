@@ -16,6 +16,7 @@ services:
     image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.4.1}
     volumes:
       - ${PWD}/lib:/app/lib:rw
+      - ${PWD}/bin:/app/bin:rw
       - ${PWD}/coverage:/app/coverage
       - ${PWD}/shard.lock:/app/shard.lock
       - ${PWD}/shard.override.yml:/app/shard.override.yml
