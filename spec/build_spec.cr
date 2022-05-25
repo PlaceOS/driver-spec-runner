@@ -24,15 +24,17 @@ module PlaceOS::Drivers::Api
     describe "GET /build/driver/:driver" do
       it "should list compiled versions" do
         Api::Build
-          .with_request("POST", "/build?commit=#{DRIVER_COMMIT}&repository=private_drivers&driver=drivers/place/private_helper.cr", &.create)
+          .with_request("POST", "/build?commit=#{DRIVER_COMMIT}&repository=private_drivers&driver=src/place/private_helper.cr", &.create)
           .response.status
           .success?
           .should be_true
 
-        context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fprivate_helper.cr?repository=private_drivers", &.show)
+        context = Api::Build.with_request("GET", "/build/src%2Fplace%2Fprivate_helper.cr", route_params: {"driver" => "src/place/private_helper.cr"}, &.show)
 
         Array(PlaceOS::Build::Executable)
-          .from_json(context.response.output.to_s).first
+          .from_json(context.response.output.to_s)
+          .tap(&.should_not be_empty)
+          .first
           .filename
           .should start_with "private_helper"
       end
@@ -40,7 +42,7 @@ module PlaceOS::Drivers::Api
 
     describe "GET /build/driver/:driver/commits" do
       it "should list commits" do
-        context = Api::Build.with_request("GET", "/build/drivers%2Fplace%2Fprivate_helper.cr/commits?repository=private_drivers", &.commits)
+        context = Api::Build.with_request("GET", "/build/src%2Fplace%2Fprivate_helper.cr/commits?repository=private_drivers", route_params: {"driver" => "src/place/private_helper.cr"}, &.commits)
         Array(PlaceOS::Compiler::Git::Commit).from_json(context.response.output.to_s).should_not be_empty
       end
     end

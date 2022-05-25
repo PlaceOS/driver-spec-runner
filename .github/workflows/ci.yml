@@ -12,26 +12,6 @@ jobs:
     uses: PlaceOS/.github/.github/workflows/dockerfile-style.yml@main
 
   test:
-    name: "crystal: ${{ matrix.crystal }}, stable: ${{ matrix.stable }}"
-    continue-on-error: ${{ !matrix.stable }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        stable: [true]
-        crystal:
-          - 1.1.1
-          - 1.2.2
-          - 1.3.2
-          - 1.4.1
-        include:
-          - crystal: nightly
-            stable: false
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run docker-compose test environment
-        run: ./test
-        env:
-            CRYSTAL_VERSION: ${{ matrix.crystal }}
-      - run: docker-compose logs build
-        if: ${{ failure() }}
+    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@main
+    with:
+      cache_shards: false
