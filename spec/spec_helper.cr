@@ -24,10 +24,13 @@ class MockServer
 end
 
 abstract class PlaceOS::Drivers::Api::Application < ActionController::Base
-  def self.with_request(verb, path, expect_failure = false)
+  def self.with_request(verb, path, expect_failure = false, route_params = nil)
     io = IO::Memory.new
     context = context(verb.upcase, path)
-    MOCK_SERVER.route_handler.search_route(verb, path, "#{verb}#{path}", context)
+
+    context.route_params = route_params if route_params
+
+    MOCK_SERVER.route_handler.search_route(verb, path, "#{verb.downcase}#{path}", context)
     context.response.output = io
 
     yield new(context)

@@ -44,7 +44,12 @@ module PlaceOS::Drivers::Api
       driver_source = route_params["driver"]
       count = (params["count"]? || 50).to_i
       commits = with_temporary_repository do |directory, repo|
-        PlaceOS::Compiler::Git.commits(driver_source, repo, directory, count)
+        PlaceOS::Compiler::Git.commits(
+          file_name: driver_source,
+          repository: repo,
+          working_directory: directory,
+          count: count,
+        )
       end
 
       render json: commits
