@@ -54,6 +54,6 @@ services:
       PLACEOS_ENABLE_TRACE: "true"
 
   redis:
-    image: eqalpha/keydb
+    image: eqalpha/keydb:alpine
     restart: always
     hostname: redis
