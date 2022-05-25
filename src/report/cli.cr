@@ -235,7 +235,7 @@ module PlaceOS::Drivers
     def log_compilation_failure(unit, output) : Nil
       path = unit.driver.lchop("drivers/").rchop(".cr").gsub('/', '_') + ".log"
       File.open(log_directory / path, mode: "w+") do |file_io|
-        file_io << output
+        file_io.puts output
       end
     rescue
       nil
