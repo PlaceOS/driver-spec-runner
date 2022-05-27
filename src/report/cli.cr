@@ -70,8 +70,8 @@ module PlaceOS::Drivers
     alias Build = CompileOnly | Test
 
     getter done_channel : Channel(Nil) = Channel(Nil).new
-    getter build_channel : Channel(Build) = Channel(Build).new(Settings.builds)
-    getter test_channel : Channel(Test) = Channel(Test).new(Settings.tests)
+    getter build_channel : Channel(Build) = Channel(Build).new(capacity: Settings.builds)
+    getter test_channel : Channel(Test) = Channel(Test).new(capacity: Settings.tests)
 
     def stop
       build_channel.close
@@ -147,6 +147,9 @@ module PlaceOS::Drivers
     end
 
     def run(drivers : Array(String), specs : Array(String)) : Bool
+      puts "running #{Settings.builds} concurrent builds"
+      puts "running #{Settings.tests} concurrent tests"
+
       # Collect statistics
       spawn do
         while result = state_channel.receive?
@@ -155,9 +158,11 @@ module PlaceOS::Drivers
       end
 
       # Build the drivers
-      spawn do
-        while unit = build_channel.receive?
-          build(unit)
+      Settings.builds.times do
+        spawn do
+          while unit = build_channel.receive?
+            build(unit)
+          end
         end
       end
 

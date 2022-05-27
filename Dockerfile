@@ -7,8 +7,10 @@ WORKDIR /frontend
 
 COPY /frontend/package*.json  /frontend
 
-RUN npm install --unsafe-perm=true -g @angular/cli @angular-builders/custom-webpack && \
-    npm clean-install
+RUN npm set registry https://registry.npmjs.org/
+RUN npm set progress false
+RUN npm install --unsafe-perm=true -g @angular/cli @angular-builders/custom-webpack
+RUN npm clean-install
 
 # Copy source after install dependencies
 COPY frontend /frontend
