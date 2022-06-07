@@ -61,19 +61,33 @@ module PlaceOS::Drivers::Api
 
     def pipe_spec(socket, debug)
       output, output_writer = IO.pipe
-      spawn { launch_spec(output_writer, debug) }
+      finished_channel = Channel(Nil).new(capacity: 1)
 
-      # Read data coming in from the IO and send it down the websocket
-      raw_data = Bytes.new(1024)
-      begin
-        while !output.closed?
-          bytes_read = output.read(raw_data)
-          break if bytes_read == 0 # IO was closed
-          socket.send String.new(raw_data[0, bytes_read])
-        end
-      rescue IO::Error
-        # Input stream closed. This should only occur on termination
+      spawn do
+        launch_spec(output_writer, debug)
+
+        finished_channel.close
       end
+
+      spawn do
+        # Read data coming in from the IO and send it down the websocket
+        raw_data = Bytes.new(1024)
+        begin
+          until output.closed? || finished_channel.closed?
+            bytes_read = output.read(raw_data)
+            break if bytes_read == 0 # IO was closed
+            socket.send String.new(raw_data[0, bytes_read])
+          end
+        rescue IO::Error
+          # Input stream closed. This should only occur on termination
+        end
+      end
+
+      finished_channel.receive?
+
+      # Yield and wait for all remaining IO to drain
+      sleep 150.milliseconds
+      output.close
 
       # Once the process exits, close the websocket
       socket.close
