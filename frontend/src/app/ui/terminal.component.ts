@@ -60,6 +60,7 @@ export class TerminalComponent
                 green: '#43a047',
             },
             fontSize: 14,
+            scrollback: 40000
         });
         this.terminal.open(this.terminal_element.nativeElement);
         this.timeout('init', () => {
