@@ -63,10 +63,13 @@ module PlaceOS::Drivers::Api
       output, output_writer = IO.pipe
       finished_channel = Channel(Nil).new(capacity: 1)
 
+      socket.on_close do
+        finished_channel.close unless finished_channel.closed?
+      end
+
       spawn do
         launch_spec(output_writer, debug)
-
-        finished_channel.close
+        finished_channel.close unless finished_channel.closed?
       end
 
       spawn do
@@ -90,7 +93,7 @@ module PlaceOS::Drivers::Api
       output.close
 
       # Once the process exits, close the websocket
-      socket.close
+      socket.close unless socket.closed?
     end
 
     macro ensure_compilation
