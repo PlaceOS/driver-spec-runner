@@ -14,7 +14,7 @@ import { SpecTestService } from './services/test.service';
             "
         >
             <div class="flex items-center p-2 w-full">
-                <button mat-button (click)="runTests()">Run Tests</button>
+                <button mat-button (click)="runTestsWithFeedback()">Run Tests</button>
                 <div class="flex-1 w-0"></div>
                 <button mat-icon-button (click)="fullscreen = !fullscreen">
                     <i class="material-icons">{{
@@ -24,16 +24,16 @@ import { SpecTestService } from './services/test.service';
             </div>
             <div class="flex-1 w-full overflow-auto" #body>
                 <a-terminal
-                    *ngIf="!running"
+                    *ngIf="!running || results"
                     [content]="results || 'No test results to display'"
                     [resize]="fullscreen"
                 ></a-terminal>
             </div>
             <div
                 *ngIf="running"
-                class="absolute inset-0 bg-white bg-opacity-25 flex items-center justify-center"
+                class="absolute top-3 left-28 flex items-center justify-center"
             >
-                <mat-spinner [diameter]="48"></mat-spinner>
+                <mat-spinner [diameter]="32"></mat-spinner>
             </div>
         </div>
     `,
@@ -70,6 +70,16 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
         this.running = false;
     };
 
+    public readonly runTestsWithFeedback = () => {
+        this.results = '';
+        this.running = true;
+        this.subscription('test', this._tests.runSpecWithFeedback({}).subscribe(
+            (data) => this.results += this.processResults(data), 
+            () => this.running = false, 
+            () => this.running = false
+        ));
+    }
+
     @ViewChild('body') private _body_el: ElementRef<HTMLDivElement>;
 
     constructor(
@@ -90,6 +100,10 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
         details = (details instanceof Object ? details.error : details) || '';
         const success = details.indexOf('exited with 0') >= 0;
         this._build.setTestStatus(success ? 'passed' : 'failed');
+        if (success) this.timeout('terminate', () => {
+            this.unsub('test');
+            this.running = false;
+        });
         this.timeout(
             'scroll',
             () =>

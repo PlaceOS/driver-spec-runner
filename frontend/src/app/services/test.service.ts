@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, combineLatest } from 'rxjs';
+import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { filter, shareReplay, switchMap } from 'rxjs/operators';
+
+import { webSocket } from 'rxjs/webSocket';
 
 import { stringSimilarity } from 'string-similarity-js';
 
@@ -123,8 +125,28 @@ export class SpecTestService {
     }
 
     public async runSpec(options: RunTestOptions) {
+        options = this._generateRunOptions(options);
+        const query = toQueryString(options);
+        const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
+        return this._http
+            .post(url, options, { responseType: 'text' })
+            .toPromise();
+    }
+
+    public runSpecWithFeedback(options: RunTestOptions): Observable<string> {
+        options = this._generateRunOptions(options);
+        const query = toQueryString(options);
+        const secure = location.protocol.includes('https');
+        const url = `ws${secure ? 's' : ''}://${location.host}/test/run_spec${query ? '?' + query : ''}`;
+        return webSocket<string>({
+            url,
+            deserializer: ({data}) => data
+        }).asObservable();
+    }
+
+    private _generateRunOptions(options: RunTestOptions) {
         const repo = this._build.getRepository() || options.repository;
-        options = {
+        return {
             repository: repo === 'Public' ? undefined : repo,
             driver:
                 this._build.getDriver() ||
@@ -139,10 +161,5 @@ export class SpecTestService {
             force: this._settings.getValue().force || options.force,
             debug: this._settings.getValue().debug_symbols || options.debug,
         };
-        const query = toQueryString(options);
-        const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
-        return this._http
-            .post(url, options, { responseType: 'text' })
-            .toPromise();
     }
 }

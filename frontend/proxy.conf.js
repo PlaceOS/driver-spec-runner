@@ -24,6 +24,7 @@ const PROXY_CONFIG = [
         context: [
             "/control/websocket",
             "/api",
+            "/test"
         ],
         target: `ws${secure ? 's' : ''}://${domain}`,
         secure: valid_ssl,
