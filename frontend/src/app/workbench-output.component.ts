@@ -13,8 +13,10 @@ import { SpecTestService } from './services/test.service';
                 (fullscreen ? 'fullscreen' : '')
             "
         >
-            <div class="flex items-center p-2 w-full">
+            <div class="flex items-center p-2 w-full space-x-2">
                 <button mat-button (click)="runTestsWithFeedback()">Run Tests</button>
+                <button mat-button *ngIf="running" (click)="cancelTests()">Cancel Tests</button>
+                <mat-spinner *ngIf="running" [diameter]="32"></mat-spinner>
                 <div class="flex-1 w-0"></div>
                 <button mat-icon-button (click)="fullscreen = !fullscreen">
                     <i class="material-icons">{{
@@ -29,13 +31,7 @@ import { SpecTestService } from './services/test.service';
                     [resize]="fullscreen"
                 ></a-terminal>
             </div>
-            <div
-                *ngIf="running"
-                class="absolute top-3 left-28 flex items-center justify-center"
-            >
-                <mat-spinner [diameter]="32"></mat-spinner>
             </div>
-        </div>
     `,
     styles: [
         `
@@ -96,14 +92,18 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
         );
     }
 
+    public cancelTests() {
+        this.timeout('terminate', () => {
+            this.unsub('test');
+            this.running = false;
+        });
+    }
+
     private processResults(details: any): string {
         details = (details instanceof Object ? details.error : details) || '';
         const success = details.indexOf('exited with 0') >= 0;
         this._build.setTestStatus(success ? 'passed' : 'failed');
-        if (success) this.timeout('terminate', () => {
-            this.unsub('test');
-            this.running = false;
-        });
+        if (success) this.cancelTests();
         this.timeout(
             'scroll',
             () =>
