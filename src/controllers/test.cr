@@ -11,13 +11,23 @@ module PlaceOS::Drivers::Api
 
     PLACE_DRIVERS_DIR = "../../#{Path[Dir.current].basename}"
 
+    getter? force : Bool do
+      !!(params["force"]?.presence || params["force_recompile"]?.presence).presence.try(&.downcase.in?("1", "true"))
+    end
+
     getter? debug : Bool do
       !!params["debug"]?.presence.try(&.downcase.in?("1", "true"))
     end
 
-    getter count : Int32 do
-      params["count"]?.presence.try &.to_i? || 50
-    end
+    getter count : Int32 { params["count"]?.presence.try &.to_i? || 50 }
+
+    getter driver : String { params["driver"] }
+
+    getter commit : String? { params["commit"]? }
+
+    getter spec : String { params["spec"] }
+
+    getter spec_commit : String? { params["spec_commit"]? }
 
     # Specs available
     def index
@@ -40,7 +50,13 @@ module PlaceOS::Drivers::Api
 
     # Run the spec and return success if the exit status is 0
     def create
-      ensure_compilation
+      driver_result = build_driver(driver, commit, force?)
+      return compilation_response(driver_result) unless driver_result.is_a? PlaceOS::Build::Compilation::Success
+      @driver_path = binary_store.path(driver_result.executable)
+
+      spec_result = build_driver(spec, spec_commit, force?)
+      return compilation_response(spec_result) unless spec_result.is_a? PlaceOS::Build::Compilation::Success
+      @spec_path = binary_store.path(spec_result.executable)
 
       io = IO::Memory.new
       exit_code = launch_spec(io, debug?)
@@ -51,12 +67,58 @@ module PlaceOS::Drivers::Api
       end
     end
 
+    struct CompilationResponse
+      include JSON::Serializable
+
+      getter status : String
+
+      @[JSON::Field(converter: String::RawConverter)]
+      getter output : String?
+
+      def initialize(@status, @output)
+      end
+
+      def self.from_result(result)
+        output = case result
+                 in PlaceOS::Build::Compilation::Success
+                   binary_store.info(PlaceOS::Build::Executable.new(result.path))
+                 in PlaceOS::Build::Compilation::NotFound
+                   nil
+                 in PlaceOS::Build::Compilation::Failure
+                   result.error
+                 end
+
+        new(
+          status: result.class.name.split("::").last.underscore,
+          output: output
+        )
+      end
+    end
+
     # WS watch the output from running specs
     ws "/run_spec", :run_spec do |socket|
-      ensure_compilation
-
       # Run the spec and pipe all the IO down the websocket
-      spawn { pipe_spec(socket, debug?) }
+      spawn do
+        driver_result = build_driver(driver, commit, force?)
+
+        socket.send(CompilationResponse.from_result(driver_result).to_json)
+        unless driver_result.is_a?(PlaceOS::Build::Compilation::Success)
+          socket.close
+          next
+        end
+
+        @driver_path = binary_store.path(driver_result.executable)
+
+        socket.send(CompilationResponse.from_result(spec_result).to_json)
+        unless spec_result.is_a?(PlaceOS::Build::Compilation::Success)
+          socket.close
+          next
+        end
+
+        @spec_path = binary_store.path(spec_result.executable)
+
+        pipe_spec(socket, debug?)
+      end
     end
 
     def pipe_spec(socket, debug)
@@ -68,7 +130,7 @@ module PlaceOS::Drivers::Api
       end
 
       spawn do
-        launch_spec(output_writer, debug)
+        launch_spec(output_writer, debug, finished_channel)
         finished_channel.close unless finished_channel.closed?
       end
 
@@ -96,19 +158,9 @@ module PlaceOS::Drivers::Api
       socket.close unless socket.closed?
     end
 
-    macro ensure_compilation
-      driver_result = build_driver(params["driver"], params["commit"]?, params["force"]?.presence || params["force_recompile"]?)
-      return compilation_response(driver_result) unless driver_result.is_a? PlaceOS::Build::Compilation::Success
-      @driver_path = binary_store.path(driver_result.executable)
-
-      spec_result = build_driver(params["spec"], params["spec_commit"]?, params["force"]?.presence || params["force_recompile"]?)
-      return compilation_response(spec_result) unless spec_result.is_a? PlaceOS::Build::Compilation::Success
-      @spec_path = binary_store.path(spec_result.executable)
-    end
-
     GDB_SERVER_PORT = ENV["GDB_SERVER_PORT"]? || "4444"
 
-    def launch_spec(io, debug)
+    def launch_spec(io, debug, closed_channel = Channel(Nil).new(capacity: 1))
       memory = IO::Memory.new
       io = IO::MultiWriter.new(io, memory)
       io << "\nLaunching spec runner\n"
@@ -147,6 +199,9 @@ module PlaceOS::Drivers::Api
 
         select
         when channel.receive
+        when closed_channel.receive?
+          process.not_nil!.signal(:kill)
+          channel.receive
         when timeout(5.minutes)
           process.not_nil!.signal(:kill)
           channel.receive
