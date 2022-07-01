@@ -11,19 +11,11 @@ module PlaceOS::Drivers::Api
 
     PLACE_DRIVERS_DIR = "../../#{Path[Dir.current].basename}"
 
-    getter? force : Bool do
-      !!(params["force"]?.presence || params["force_recompile"]?.presence).presence.try(&.downcase.in?("1", "true"))
-    end
-
     getter? debug : Bool do
       !!params["debug"]?.presence.try(&.downcase.in?("1", "true"))
     end
 
     getter count : Int32 { params["count"]?.presence.try &.to_i? || 50 }
-
-    getter driver : String { params["driver"] }
-
-    getter commit : String? { params["commit"]? }
 
     getter spec : String { params["spec"] }
 
@@ -50,13 +42,14 @@ module PlaceOS::Drivers::Api
 
     # Run the spec and return success if the exit status is 0
     def create
-      driver_result = build_driver(driver, commit, force?)
-      return compilation_response(driver_result) unless driver_result.is_a? PlaceOS::Build::Compilation::Success
-      @driver_path = binary_store.path(driver_result.executable)
-
-      spec_result = build_driver(spec, spec_commit, force?)
-      return compilation_response(spec_result) unless spec_result.is_a? PlaceOS::Build::Compilation::Success
-      @spec_path = binary_store.path(spec_result.executable)
+      @driver_path, @spec_path = {
+        {driver, commit},
+        {spec, spec_commit},
+      }.map do |file, file_commit|
+        result = build_driver(file, file_commit, force?)
+        return compilation_response(result) unless result.is_a? PlaceOS::Build::Compilation::Success
+        binary_store.path(result.executable)
+      end
 
       io = IO::Memory.new
       exit_code = launch_spec(io, debug?)
@@ -78,14 +71,12 @@ module PlaceOS::Drivers::Api
       def initialize(@status, @output)
       end
 
-      def self.from_result(result)
+      def self.from_result(result, binary_store)
         output = case result
+                 in PlaceOS::Build::Compilation::Failure  then result.to_json
+                 in PlaceOS::Build::Compilation::NotFound then nil
                  in PlaceOS::Build::Compilation::Success
-                   binary_store.info(PlaceOS::Build::Executable.new(result.path))
-                 in PlaceOS::Build::Compilation::NotFound
-                   nil
-                 in PlaceOS::Build::Compilation::Failure
-                   result.error
+                   binary_store.info(PlaceOS::Build::Executable.new(result.path)).to_json
                  end
 
         new(
@@ -99,23 +90,22 @@ module PlaceOS::Drivers::Api
     ws "/run_spec", :run_spec do |socket|
       # Run the spec and pipe all the IO down the websocket
       spawn do
-        driver_result = build_driver(driver, commit, force?)
+        paths = {
+          {driver, commit},
+          {spec, spec_commit},
+        }.map do |file, file_commit|
+          result = build_driver(file, file_commit, force?)
+          socket.send(CompilationResponse.from_result(result, binary_store).to_json)
+          break unless result.is_a?(PlaceOS::Build::Compilation::Success)
 
-        socket.send(CompilationResponse.from_result(driver_result).to_json)
-        unless driver_result.is_a?(PlaceOS::Build::Compilation::Success)
+          binary_store.path(result.executable)
+        end
+
+        if paths.nil? || (@driver_path = paths.first).nil? || (@spec_path = paths.last).nil?
+          # Close socket and early exit before starting the spec
           socket.close
           next
         end
-
-        @driver_path = binary_store.path(driver_result.executable)
-
-        socket.send(CompilationResponse.from_result(spec_result).to_json)
-        unless spec_result.is_a?(PlaceOS::Build::Compilation::Success)
-          socket.close
-          next
-        end
-
-        @spec_path = binary_store.path(spec_result.executable)
 
         pipe_spec(socket, debug?)
       end

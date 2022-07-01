@@ -12,7 +12,7 @@ module PlaceOS::Drivers::Api
     # Build a drvier, optionally based on the version specified
     #
     def create
-      compilation_response(build_driver(params["driver"], params["commit"]?, params["force_recompile"]?))
+      compilation_response(build_driver(driver, commit, force?))
     end
 
     # List the available files
