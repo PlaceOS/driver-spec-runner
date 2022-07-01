@@ -60,15 +60,15 @@ module PlaceOS::Drivers::Api
       end
     end
 
-    struct CompilationResponse
+    struct TestMessage
       include JSON::Serializable
 
-      getter status : String
+      getter type : String
 
       @[JSON::Field(converter: String::RawConverter)]
       getter output : String?
 
-      def initialize(@status, @output)
+      def initialize(@type, @output)
       end
 
       def self.from_result(result, binary_store)
@@ -80,7 +80,7 @@ module PlaceOS::Drivers::Api
                  end
 
         new(
-          status: result.class.name.split("::").last.underscore,
+          type: result.class.name.split("::").last.underscore,
           output: output
         )
       end
@@ -95,57 +95,54 @@ module PlaceOS::Drivers::Api
           {spec, spec_commit},
         }.map do |file, file_commit|
           result = build_driver(file, file_commit, force?)
-          socket.send(CompilationResponse.from_result(result, binary_store).to_json)
+          socket.send(TestMessage.from_result(result, binary_store).to_json)
           break unless result.is_a?(PlaceOS::Build::Compilation::Success)
 
           binary_store.path(result.executable)
         end
 
         if paths.nil? || (@driver_path = paths.first).nil? || (@spec_path = paths.last).nil?
-          # Close socket and early exit before starting the spec
+          # Close socket and early exit from the fiber
           socket.close
           next
         end
 
-        pipe_spec(socket, debug?)
-      end
-    end
+        output, output_writer = IO.pipe
+        finished_channel = Channel(Nil).new(capacity: 1)
 
-    def pipe_spec(socket, debug)
-      output, output_writer = IO.pipe
-      finished_channel = Channel(Nil).new(capacity: 1)
-
-      socket.on_close do
-        finished_channel.close unless finished_channel.closed?
-      end
-
-      spawn do
-        launch_spec(output_writer, debug, finished_channel)
-        finished_channel.close unless finished_channel.closed?
-      end
-
-      spawn do
-        # Read data coming in from the IO and send it down the websocket
-        raw_data = Bytes.new(1024)
-        begin
-          until output.closed? || finished_channel.closed?
-            bytes_read = output.read(raw_data)
-            break if bytes_read == 0 # IO was closed
-            socket.send String.new(raw_data[0, bytes_read])
-          end
-        rescue IO::Error
-          # Input stream closed. This should only occur on termination
+        socket.on_close do
+          finished_channel.close unless finished_channel.closed?
         end
+
+        spawn do
+          launch_spec(output_writer, debug?, finished_channel)
+          finished_channel.close unless finished_channel.closed?
+        end
+
+        spawn do
+          # Read data coming in from the IO and send it down the websocket
+          raw_data = Bytes.new(1024)
+          begin
+            until output.closed? || finished_channel.closed?
+              bytes_read = output.read(raw_data)
+              break if bytes_read == 0 # IO was closed
+
+              socket.send(TestMessage.new(type: "test_output", output: String.new(raw_data[0, bytes_read])).to_json)
+            end
+          rescue IO::Error
+            # Input stream closed. This should only occur on termination
+          end
+        end
+
+        finished_channel.receive?
+
+        # Yield and wait for all remaining IO to drain
+        sleep 150.milliseconds
+        output.close
+
+        # Once the process exits, close the websocket
+        socket.close unless socket.closed?
       end
-
-      finished_channel.receive?
-
-      # Yield and wait for all remaining IO to drain
-      sleep 150.milliseconds
-      output.close
-
-      # Once the process exits, close the websocket
-      socket.close unless socket.closed?
     end
 
     GDB_SERVER_PORT = ENV["GDB_SERVER_PORT"]? || "4444"
