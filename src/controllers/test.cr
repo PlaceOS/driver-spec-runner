@@ -15,9 +15,11 @@ module PlaceOS::Drivers::Api
       !!params["debug"]?.presence.try(&.downcase.in?("1", "true"))
     end
 
-    getter count : Int32 do
-      params["count"]?.presence.try &.to_i? || 50
-    end
+    getter count : Int32 { params["count"]?.presence.try &.to_i? || 50 }
+
+    getter spec : String { params["spec"] }
+
+    getter spec_commit : String? { params["spec_commit"]? }
 
     # Specs available
     def index
@@ -40,7 +42,14 @@ module PlaceOS::Drivers::Api
 
     # Run the spec and return success if the exit status is 0
     def create
-      ensure_compilation
+      @driver_path, @spec_path = {
+        {driver, commit},
+        {spec, spec_commit},
+      }.map do |file, file_commit|
+        result = build_driver(file, file_commit, force?)
+        return compilation_response(result) unless result.is_a? PlaceOS::Build::Compilation::Success
+        binary_store.path(result.executable)
+      end
 
       io = IO::Memory.new
       exit_code = launch_spec(io, debug?)
@@ -51,61 +60,94 @@ module PlaceOS::Drivers::Api
       end
     end
 
+    struct TestMessage
+      include JSON::Serializable
+
+      getter type : String
+
+      @[JSON::Field(converter: String::RawConverter)]
+      getter output : String?
+
+      def initialize(@type, @output)
+      end
+
+      def self.from_result(result, binary_store)
+        output = case result
+                 in PlaceOS::Build::Compilation::Failure  then result.to_json
+                 in PlaceOS::Build::Compilation::NotFound then nil
+                 in PlaceOS::Build::Compilation::Success
+                   binary_store.info(PlaceOS::Build::Executable.new(result.path)).to_json
+                 end
+
+        new(
+          type: result.class.name.split("::").last.underscore,
+          output: output
+        )
+      end
+    end
+
     # WS watch the output from running specs
     ws "/run_spec", :run_spec do |socket|
-      ensure_compilation
-
       # Run the spec and pipe all the IO down the websocket
-      spawn { pipe_spec(socket, debug?) }
-    end
-
-    def pipe_spec(socket, debug)
-      output, output_writer = IO.pipe
-      finished_channel = Channel(Nil).new(capacity: 1)
-
       spawn do
-        launch_spec(output_writer, debug)
+        paths = {
+          {driver, commit},
+          {spec, spec_commit},
+        }.map do |file, file_commit|
+          result = build_driver(file, file_commit, force?)
+          socket.send(TestMessage.from_result(result, binary_store).to_json)
+          break unless result.is_a?(PlaceOS::Build::Compilation::Success)
 
-        finished_channel.close
-      end
-
-      spawn do
-        # Read data coming in from the IO and send it down the websocket
-        raw_data = Bytes.new(1024)
-        begin
-          until output.closed? || finished_channel.closed?
-            bytes_read = output.read(raw_data)
-            break if bytes_read == 0 # IO was closed
-            socket.send String.new(raw_data[0, bytes_read])
-          end
-        rescue IO::Error
-          # Input stream closed. This should only occur on termination
+          binary_store.path(result.executable)
         end
+
+        if paths.nil? || (@driver_path = paths.first).nil? || (@spec_path = paths.last).nil?
+          # Close socket and early exit from the fiber
+          socket.close
+          next
+        end
+
+        output, output_writer = IO.pipe
+        finished_channel = Channel(Nil).new(capacity: 1)
+
+        socket.on_close do
+          finished_channel.close unless finished_channel.closed?
+        end
+
+        spawn do
+          launch_spec(output_writer, debug?, finished_channel)
+          finished_channel.close unless finished_channel.closed?
+        end
+
+        spawn do
+          # Read data coming in from the IO and send it down the websocket
+          raw_data = Bytes.new(1024)
+          begin
+            until output.closed? || finished_channel.closed?
+              bytes_read = output.read(raw_data)
+              break if bytes_read == 0 # IO was closed
+
+              socket.send(TestMessage.new(type: "test_output", output: String.new(raw_data[0, bytes_read])).to_json)
+            end
+          rescue IO::Error
+            # Input stream closed. This should only occur on termination
+          end
+        end
+
+        finished_channel.receive?
+
+        # Yield and wait for all remaining IO to drain
+        sleep 150.milliseconds
+        output.close
+
+        # Once the process exits, close the websocket
+        socket.close unless socket.closed?
       end
-
-      finished_channel.receive?
-
-      # Yield and wait for all remaining IO to drain
-      sleep 150.milliseconds
-      output.close
-
-      # Once the process exits, close the websocket
-      socket.close
-    end
-
-    macro ensure_compilation
-      driver_result = build_driver(params["driver"], params["commit"]?, params["force"]?.presence || params["force_recompile"]?)
-      return compilation_response(driver_result) unless driver_result.is_a? PlaceOS::Build::Compilation::Success
-      @driver_path = binary_store.path(driver_result.executable)
-
-      spec_result = build_driver(params["spec"], params["spec_commit"]?, params["force"]?.presence || params["force_recompile"]?)
-      return compilation_response(spec_result) unless spec_result.is_a? PlaceOS::Build::Compilation::Success
-      @spec_path = binary_store.path(spec_result.executable)
     end
 
     GDB_SERVER_PORT = ENV["GDB_SERVER_PORT"]? || "4444"
 
-    def launch_spec(io, debug)
+    def launch_spec(io, debug, closed_channel = Channel(Nil).new(capacity: 1))
       memory = IO::Memory.new
       io = IO::MultiWriter.new(io, memory)
       io << "\nLaunching spec runner\n"
@@ -144,6 +186,9 @@ module PlaceOS::Drivers::Api
 
         select
         when channel.receive
+        when closed_channel.receive?
+          process.not_nil!.signal(:kill)
+          channel.receive
         when timeout(5.minutes)
           process.not_nil!.signal(:kill)
           channel.receive

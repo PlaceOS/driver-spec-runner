@@ -12,6 +12,19 @@ module PlaceOS::Drivers::Api
 
     getter driver_path : String = ""
 
+    # Params
+    ###########################################################################
+
+    getter? force : Bool do
+      !!(params["force"]?.presence || params["force_recompile"]?.presence).presence.try(&.downcase.in?("1", "true"))
+    end
+
+    getter driver : String { params["driver"] }
+
+    getter commit : String? { params["commit"]? }
+
+    ###########################################################################
+
     # Support request tracking
     def set_request_id
       Log.context.set(client_ip: client_ip)
@@ -58,9 +71,8 @@ module PlaceOS::Drivers::Api
       end
     end
 
-    def build_driver(driver, commit, force_recompile) : PlaceOS::Build::Compilation::Result
+    def build_driver(driver, commit, force_recompile : Bool) : PlaceOS::Build::Compilation::Result
       commit = commit.presence
-      force_recompile = !!(force_recompile.presence.try &.downcase.in?("1", "true"))
 
       if commit.nil? || commit == "HEAD"
         commit = PlaceOS::Compiler::Git.current_repository_commit(repository, working_directory)

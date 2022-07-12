@@ -44,6 +44,11 @@ export interface TestSettings {
     debug_symbols?: boolean;
 }
 
+export interface TestResponse {
+    type: 'failure' | 'not_found' | 'success' | 'test_output',
+    output?: string;
+}
+
 @Injectable({
     providedIn: 'root',
 })
@@ -140,7 +145,7 @@ export class SpecTestService {
         const url = `ws${secure ? 's' : ''}://${location.host}/test/run_spec${query ? '?' + query : ''}`;
         return webSocket<string>({
             url,
-            deserializer: ({data}) => data
+            deserializer: ({data}) => typeof data === 'string' ? data : this._processMessage(data)
         }).asObservable();
     }
 
@@ -161,5 +166,16 @@ export class SpecTestService {
             force: this._settings.getValue().force || options.force,
             debug: this._settings.getValue().debug_symbols || options.debug,
         };
+    }
+
+    private _processMessage({ type, output }: TestResponse): string {
+        if (type === 'failure') {
+            return`\\033[31m${output}`;
+        } else if (type === 'not_found') {
+            return`\\033[31mTest specifications not found.`;
+        } else if (type === 'success') {
+            return`\\033[32m${output}`;
+        }
+        return output;
     }
 }
