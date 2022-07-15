@@ -31,7 +31,7 @@ module PlaceOS::Drivers::Api
 
         context = Api::Build.with_request("GET", "/build/src%2Fplace%2Fprivate_helper.cr", route_params: {"driver" => "src/place/private_helper.cr"}, &.show)
 
-        Array(PlaceOS::Build::Executable)
+        Array(PlaceOS::Model::Executable)
           .from_json(context.response.output.to_s)
           .tap(&.should_not be_empty)
           .first

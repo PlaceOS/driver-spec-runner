@@ -6,8 +6,8 @@ module PlaceOS::Drivers::Api
 
     id_param :driver
 
-    @driver_path : String = ""
-    @spec_path : String = ""
+    @driver_path : String? = nil
+    @spec_path : String? = nil
 
     PLACE_DRIVERS_DIR = "../../#{Path[Dir.current].basename}"
 
@@ -76,7 +76,7 @@ module PlaceOS::Drivers::Api
                  in PlaceOS::Build::Compilation::Failure  then result.to_json
                  in PlaceOS::Build::Compilation::NotFound then nil
                  in PlaceOS::Build::Compilation::Success
-                   binary_store.info(PlaceOS::Build::Executable.new(result.path)).to_json
+                   binary_store.info(PlaceOS::Model::Executable.new(result.path)).to_json
                  end
 
         new(
@@ -151,11 +151,17 @@ module PlaceOS::Drivers::Api
       memory = IO::Memory.new
       io = IO::MultiWriter.new(io, memory)
       io << "\nLaunching spec runner\n"
+
+      unless (spec_path = @spec_path) && (driver_path = @driver_path)
+        io.puts "The driver and/or spec paths were not defined"
+        return 1
+      end
+
       if debug
         exit_code = Process.run(
           "gdbserver",
-          {"0.0.0.0:#{GDB_SERVER_PORT}", @spec_path},
-          {"SPEC_RUN_DRIVER" => @driver_path},
+          {"0.0.0.0:#{GDB_SERVER_PORT}", spec_path},
+          env: {"SPEC_RUN_DRIVER" => driver_path},
           input: Process::Redirect::Close,
           output: io,
           error: io
@@ -170,9 +176,9 @@ module PlaceOS::Drivers::Api
 
         spawn(same_thread: true) do
           Process.run(
-            @spec_path,
+            spec_path,
             nil,
-            {"SPEC_RUN_DRIVER" => @driver_path},
+            env: {"SPEC_RUN_DRIVER" => driver_path},
             input: Process::Redirect::Close,
             output: io,
             error: io

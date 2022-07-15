@@ -1,4 +1,5 @@
 require "action-controller"
+require "placeos-models/executable"
 require "file_utils"
 require "uuid"
 
@@ -10,7 +11,7 @@ module PlaceOS::Drivers::Api
 
     getter binary_store : PlaceOS::Build::Filesystem { Application.binary_store }
 
-    getter driver_path : String = ""
+    @driver_path : String? = nil
 
     # Params
     ###########################################################################
@@ -63,7 +64,7 @@ module PlaceOS::Drivers::Api
         path = result.path
         @driver_path = path
         response.headers["Location"] = URI.encode_www_form(path)
-        render :created, json: binary_store.info(PlaceOS::Build::Executable.new(result.path))
+        render :created, json: binary_store.info(PlaceOS::Model::Executable.new(result.path))
       in PlaceOS::Build::Compilation::NotFound
         head :not_found
       in PlaceOS::Build::Compilation::Failure
