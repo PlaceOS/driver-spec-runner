@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
-import { filter, shareReplay, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
+import { catchError, filter, map, shareReplay, switchMap } from 'rxjs/operators';
 
 import { webSocket } from 'rxjs/webSocket';
 
@@ -134,7 +134,13 @@ export class SpecTestService {
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
         return this._http
-            .post(url, options, { responseType: 'text' })
+            .post(url, options, { responseType: 'text' }).pipe(map(data => {
+                let json: any = data;
+                try {
+                    json = JSON.parse(data);
+                } catch (e) {}
+                return typeof data === 'string' ? json : this._processMessage(json);
+            }))
             .toPromise();
     }
 
@@ -146,7 +152,7 @@ export class SpecTestService {
         return webSocket<string>({
             url,
             deserializer: ({data}) => typeof data === 'string' ? data : this._processMessage(data)
-        }).asObservable();
+        }).asObservable().pipe(catchError(_ => of('')));
     }
 
     private _generateRunOptions(options: RunTestOptions) {

@@ -66,14 +66,18 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
         this.running = false;
     };
 
-    public readonly runTestsWithFeedback = () => {
+    public readonly runTestsWithFeedback = async () => {
         this.results = '';
         this.running = true;
-        this.subscription('test', this._tests.runSpecWithFeedback({}).subscribe(
-            (data) => this.results += this.processResults(data), 
-            () => this.running = false, 
-            () => this.running = false
-        ));
+        if (localStorage.getItem('DEBUG_WITH_API')) {
+            this.runTests();
+        } else {
+            this.subscription('test', this._tests.runSpecWithFeedback({}).subscribe(
+                (data) => this.results += this.processResults(data), 
+                () => this.running = false, 
+                () => this.running = false
+            ));
+        }
     }
 
     @ViewChild('body') private _body_el: ElementRef<HTMLDivElement>;
