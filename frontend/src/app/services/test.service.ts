@@ -134,13 +134,7 @@ export class SpecTestService {
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
         return this._http
-            .post(url, options, { responseType: 'text' }).pipe(map(data => {
-                let json: any = data;
-                try {
-                    json = JSON.parse(data);
-                } catch (e) {}
-                return typeof data === 'string' ? json : this._processMessage(json);
-            }))
+            .post(url, options, { responseType: 'text' }).pipe(map(data => this._parseResponse(data)))
             .toPromise();
     }
 
@@ -151,7 +145,7 @@ export class SpecTestService {
         const url = `ws${secure ? 's' : ''}://${location.host}/test/run_spec${query ? '?' + query : ''}`;
         return webSocket<string>({
             url,
-            deserializer: ({data}) => typeof data === 'string' ? data : this._processMessage(data)
+            deserializer: ({data}) => this._parseResponse(data),
         }).asObservable().pipe(catchError(_ => of('')));
     }
 
@@ -180,8 +174,20 @@ export class SpecTestService {
         } else if (type === 'not_found') {
             return`\\033[31mTest specifications not found.`;
         } else if (type === 'success') {
-            return`\\033[32m${output}`;
+            try {
+                return`${JSON.stringify(JSON.parse(output), undefined, 4)}`;
+            } catch (e) {
+                return`\\033[32m${output}`;
+            }
         }
         return output;
+    }
+
+    private _parseResponse(data: any) {
+        let json: any = data;
+        try {
+            json = JSON.parse(data);
+        } catch (e) {}
+        return typeof data === 'string' ? json : this._processMessage(json);
     }
 }
