@@ -71,15 +71,15 @@ module PlaceOS::Drivers::Api
       def initialize(@type, @output)
       end
 
-      def self.from_result(result, binary_store)
+      def self.from_result(result, binary_store, is_spec : Bool)
         output = case result
                  in PlaceOS::Build::Compilation::Failure  then result.to_json
                  in PlaceOS::Build::Compilation::NotFound then nil
                  in PlaceOS::Build::Compilation::Success
-                   begin
+                   if is_spec
+                     {path: result.path}.to_json
+                   else
                      binary_store.info(PlaceOS::Model::Executable.new(result.path)).to_json
-                   rescue error
-                     {result: :success, path: result.path}.to_json
                    end
                  end
 
@@ -98,11 +98,11 @@ module PlaceOS::Drivers::Api
 
     protected def run_ws_spec(socket)
       paths = {
-        {driver, commit},
-        {spec, spec_commit},
-      }.map do |file, file_commit|
+        {driver, commit, false},
+        {spec, spec_commit, true},
+      }.map do |file, file_commit, is_spec|
         result = build_driver(file, file_commit, force?)
-        socket.send(TestMessage.from_result(result, binary_store).to_json)
+        socket.send(TestMessage.from_result(result, binary_store, is_spec).to_json)
         break unless result.is_a?(PlaceOS::Build::Compilation::Success)
 
         binary_store.path(result.executable)
