@@ -76,7 +76,11 @@ module PlaceOS::Drivers::Api
                  in PlaceOS::Build::Compilation::Failure  then result.to_json
                  in PlaceOS::Build::Compilation::NotFound then nil
                  in PlaceOS::Build::Compilation::Success
-                   binary_store.info(PlaceOS::Model::Executable.new(result.path)).to_json
+                   begin
+                     binary_store.info(PlaceOS::Model::Executable.new(result.path)).to_json
+                   rescue error
+                     {result: :success, path: result.path}.to_json
+                   end
                  end
 
         new(
@@ -89,60 +93,67 @@ module PlaceOS::Drivers::Api
     # WS watch the output from running specs
     ws "/run_spec", :run_spec do |socket|
       # Run the spec and pipe all the IO down the websocket
-      spawn do
-        paths = {
-          {driver, commit},
-          {spec, spec_commit},
-        }.map do |file, file_commit|
-          result = build_driver(file, file_commit, force?)
-          socket.send(TestMessage.from_result(result, binary_store).to_json)
-          break unless result.is_a?(PlaceOS::Build::Compilation::Success)
+      spawn { run_ws_spec(socket) }
+    end
 
-          binary_store.path(result.executable)
-        end
+    protected def run_ws_spec(socket)
+      paths = {
+        {driver, commit},
+        {spec, spec_commit},
+      }.map do |file, file_commit|
+        result = build_driver(file, file_commit, force?)
+        socket.send(TestMessage.from_result(result, binary_store).to_json)
+        break unless result.is_a?(PlaceOS::Build::Compilation::Success)
 
-        if paths.nil? || (@driver_path = paths.first).nil? || (@spec_path = paths.last).nil?
-          # Close socket and early exit from the fiber
-          socket.close
-          next
-        end
-
-        output, output_writer = IO.pipe
-        finished_channel = Channel(Nil).new(capacity: 1)
-
-        socket.on_close do
-          finished_channel.close unless finished_channel.closed?
-        end
-
-        spawn do
-          launch_spec(output_writer, debug?, finished_channel)
-          finished_channel.close unless finished_channel.closed?
-        end
-
-        spawn do
-          # Read data coming in from the IO and send it down the websocket
-          raw_data = Bytes.new(1024)
-          begin
-            until output.closed? || finished_channel.closed?
-              bytes_read = output.read(raw_data)
-              break if bytes_read == 0 # IO was closed
-
-              socket.send(TestMessage.new(type: "test_output", output: String.new(raw_data[0, bytes_read])).to_json)
-            end
-          rescue IO::Error
-            # Input stream closed. This should only occur on termination
-          end
-        end
-
-        finished_channel.receive?
-
-        # Yield and wait for all remaining IO to drain
-        sleep 150.milliseconds
-        output.close
-
-        # Once the process exits, close the websocket
-        socket.close unless socket.closed?
+        binary_store.path(result.executable)
       end
+
+      if paths.nil? || (@driver_path = paths.first).nil? || (@spec_path = paths.last).nil?
+        # Close socket and early exit from the fiber
+        socket.close
+        return
+      end
+
+      output, output_writer = IO.pipe
+      finished_channel = Channel(Nil).new(capacity: 1)
+
+      socket.on_close do
+        finished_channel.close unless finished_channel.closed?
+      end
+
+      spawn do
+        launch_spec(output_writer, debug?, finished_channel)
+        finished_channel.close unless finished_channel.closed?
+      end
+
+      spawn do
+        # Read data coming in from the IO and send it down the websocket
+        raw_data = Bytes.new(1024)
+        begin
+          while bytes_read = output.read(raw_data)
+            break if bytes_read == 0 # IO was closed
+            socket.send(TestMessage.new(
+              type: "test_output",
+              output: String.new(raw_data[0, bytes_read].dup).to_json
+            ).to_json)
+          end
+        rescue IO::Error
+          # Input stream closed. This should only occur on termination
+        rescue error
+          Log.warn { "Error processing #{error.inspect_with_backtrace}" }
+        end
+      end
+
+      finished_channel.receive?
+
+      # Yield and wait for all remaining IO to drain
+      sleep 150.milliseconds
+      output.close
+    rescue error
+      Log.warn { "unexpected error running spec: #{error.inspect_with_backtrace}" }
+    ensure
+      # Once the process exits, close the websocket
+      socket.close unless socket.closed?
     end
 
     GDB_SERVER_PORT = ENV["GDB_SERVER_PORT"]? || "4444"
