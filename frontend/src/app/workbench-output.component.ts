@@ -103,8 +103,7 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
         });
     }
 
-    private processResults(details: any): string {
-        details = (details instanceof Object ? details.error : details) || '';
+    private processResults(details: string): string {
         const success = details.indexOf('exited with 0') >= 0;
         this._build.setTestStatus(success ? 'passed' : 'failed');
         if (success) this.cancelTests();

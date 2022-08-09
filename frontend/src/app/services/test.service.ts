@@ -175,12 +175,13 @@ export class SpecTestService {
             return`\\033[31mTest specifications not found.`;
         } else if (type === 'success') {
             try {
-                return`${JSON.stringify(JSON.parse(output), undefined, 4)}`;
+                const value = typeof output === 'string' ? JSON.parse(output) : output;
+                return`${JSON.stringify(value, undefined, 4)}`;
             } catch (e) {
                 return`\\033[32m${output}`;
             }
         }
-        return output;
+        return `${typeof output !== 'string' ? JSON.stringify(output, undefined, 4) : output}`;
     }
 
     private _parseResponse(data: any) {
@@ -188,6 +189,7 @@ export class SpecTestService {
         try {
             json = JSON.parse(data);
         } catch (e) {}
-        return typeof data === 'string' ? json : this._processMessage(json);
+        const value = `${typeof json === 'string' ? json : this._processMessage(json)}`;
+        return value;
     }
 }
