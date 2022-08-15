@@ -174,14 +174,13 @@ export class SpecTestService {
         } else if (type === 'not_found') {
             return`\\033[31mTest specifications not found.`;
         } else if (type === 'success') {
-            let result =  output
+            let result = output;
             try {
                 const value = typeof output === 'string' ? JSON.parse(output) : output;
                 result = `${JSON.stringify(value, undefined, 4)}`;
-            } catch (e) {
-            }
-            console.info(`✓ ${output}`);
-            return output;
+            } catch (e) {}
+            console.info(`✓`, result);
+            return result;
         }
         return `${typeof output !== 'string' ? JSON.stringify(output, undefined, 4) : output}`;
     }
