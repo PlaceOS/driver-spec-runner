@@ -129,7 +129,7 @@ export class SpecTestService {
         return [LATEST_COMMIT, ...list];
     }
 
-    public async runSpec(options: RunTestOptions) {
+    public async runSpec(options: RunTestOptions = {}) {
         options = this._generateRunOptions(options);
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
@@ -138,7 +138,7 @@ export class SpecTestService {
             .toPromise();
     }
 
-    public runSpecWithFeedback(options: RunTestOptions): Observable<string> {
+    public runSpecWithFeedback(options: RunTestOptions = {}): Observable<string> {
         options = this._generateRunOptions(options);
         const query = toQueryString(options);
         const secure = location.protocol.includes('https');
@@ -149,7 +149,7 @@ export class SpecTestService {
         }).asObservable().pipe(catchError(_ => of('')));
     }
 
-    private _generateRunOptions(options: RunTestOptions) {
+    private _generateRunOptions(options: RunTestOptions = {}) {
         const repo = this._build.getRepository() || options.repository;
         return {
             repository: repo === 'Public' ? undefined : repo,
@@ -170,7 +170,13 @@ export class SpecTestService {
 
     private _processMessage({ type, output }: TestResponse): string {
         if (type === 'failure') {
-            return`\\033[31m${output}`;
+            let result = output;
+            try {
+                const value = typeof output === 'string' ? JSON.parse(output) : output;
+                result = `${JSON.stringify(value, undefined, 4)}`;
+            } catch (e) {}
+            console.info(`✗`, result);
+            return result;
         } else if (type === 'not_found') {
             return`\\033[31mTest specifications not found.`;
         } else if (type === 'success') {

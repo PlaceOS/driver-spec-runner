@@ -72,7 +72,7 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
         if (localStorage.getItem('DEBUG_WITH_API')) {
             this.runTests();
         } else {
-            this.subscription('test', this._tests.runSpecWithFeedback({}).subscribe(
+            this.subscription('test', this._tests.runSpecWithFeedback().subscribe(
                 (data) => this.results += this.processResults(data), 
                 () => this.running = false, 
                 () => this.running = false
