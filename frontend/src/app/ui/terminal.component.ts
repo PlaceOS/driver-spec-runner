@@ -109,7 +109,7 @@ export class TerminalComponent
             return;
         }
         this.terminal.clear();
-        const lines: string[] = new_content.split('\n');
+        const lines: string[] = new_content.replace(/\\n/g, '\n').split('\n');
         for (const line of lines) {
             this.terminal.writeln(line);
         }
