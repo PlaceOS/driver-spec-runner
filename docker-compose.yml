@@ -13,7 +13,7 @@ volumes:
 
 services:
   test:
-    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.4.1}
+    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.6.1}
     volumes:
       - ${PWD}/lib:/app/lib:rw
       - ${PWD}/bin:/app/bin:rw

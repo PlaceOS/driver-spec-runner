@@ -11,11 +11,11 @@ shards:
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
-    version: 4.0.0
+    version: 4.2.3
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
-    version: 1.0.1
+    version: 1.2.0
 
   ansi-escapes:
     git: https://github.com/gtramontina/ansi-escapes.cr.git
@@ -35,11 +35,11 @@ shards:
 
   backtracer:
     git: https://github.com/sija/backtracer.cr.git
-    version: 1.2.1
+    version: 1.2.2
 
   bindata:
     git: https://github.com/spider-gazelle/bindata.git
-    version: 1.10.0
+    version: 1.11.0
 
   clip:
     git: https://github.com/erdnaxeli/clip.git
@@ -125,6 +125,10 @@ shards:
     git: https://github.com/caspiano/json-merge-patch.git
     version: 0.1.1
 
+  json-schema:
+    git: https://github.com/spider-gazelle/json-schema.git
+    version: 1.3.0
+
   jwt:
     git: https://github.com/crystal-community/jwt.git
     version: 1.6.0
@@ -155,7 +159,7 @@ shards:
 
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
-    version: 1.12.0
+    version: 1.12.1
 
   open_api:
     git: https://github.com/elbywan/open_api.cr.git
@@ -195,7 +199,7 @@ shards:
 
   placeos-build:
     git: https://github.com/placeos/build.git
-    version: 1.0.8
+    version: 1.1.1
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -207,7 +211,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.4.5
+    version: 6.4.16
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -215,7 +219,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 8.11.2
+    version: 8.12.0
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -271,7 +275,7 @@ shards:
 
   shards:
     git: https://github.com/crystal-lang/shards.git
-    version: 0.17.0
+    version: 0.17.1
 
   simple_retry:
     git: https://github.com/spider-gazelle/simple_retry.git
