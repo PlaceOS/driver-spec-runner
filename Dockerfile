@@ -1,11 +1,9 @@
-ARG NODE_VERSION=18
+ARG NODE_VERSION=14
 
 FROM node:${NODE_VERSION}-alpine as frontend-build
 
 WORKDIR /frontend
 COPY /frontend/package*.json  /frontend
-
-RUN apk add --update --no-cache python3
 
 RUN npm set registry https://registry.npmjs.org/
 RUN npm set progress false
@@ -49,6 +47,9 @@ RUN shards build \
     && \
     # Remove sources
     rm -r lib src
+
+# we need to mark directories as safe on newer versions of git
+git config --global --add safe.directory "*"
 
 # Run the app binding on port 8080
 EXPOSE 8080
