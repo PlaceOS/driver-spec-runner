@@ -1,5 +1,4 @@
 ARG NODE_VERSION=14
-ARG CRYSTAL_VERSION=1.6.1
 
 FROM node:${NODE_VERSION}-alpine as frontend-build
 
@@ -20,24 +19,13 @@ RUN npx ng build --prod
 
 ###########################
 
-FROM crystallang/crystal:${CRYSTAL_VERSION}-alpine
+FROM placeos/crystal:latest
 WORKDIR /app
 
 # Install the latest version of
 # - [GDB debugger](https://sourceware.org/gdb/current/onlinedocs/gdb/)
 # - ping (via iputils)
-RUN apk add --update --no-cache \
-  ca-certificates \
-  gdb \
-  iputils \
-  libssh2-static \
-  lz4-dev \
-  lz4-static \
-  yaml-static
-
-# Add trusted CAs for communicating with external services
-RUN update-ca-certificates
-
+RUN apk add --update --no-cache gdb 
 RUN mkdir -p /app/bin/drivers
 
 COPY ./shard.yml /app/shard.yml
