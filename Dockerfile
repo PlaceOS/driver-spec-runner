@@ -1,10 +1,11 @@
-ARG NODE_VERSION=14
+ARG NODE_VERSION=18
 
 FROM node:${NODE_VERSION}-alpine as frontend-build
 
 WORKDIR /frontend
-
 COPY /frontend/package*.json  /frontend
+
+RUN apk add --update --no-cache python3
 
 RUN npm set registry https://registry.npmjs.org/
 RUN npm set progress false
