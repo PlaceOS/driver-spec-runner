@@ -49,7 +49,7 @@ RUN shards build \
     rm -r lib src
 
 # we need to mark directories as safe on newer versions of git
-git config --global --add safe.directory "*"
+RUN git config --global --add safe.directory "*"
 
 # Run the app binding on port 8080
 EXPOSE 8080
