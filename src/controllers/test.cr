@@ -132,9 +132,10 @@ module PlaceOS::Drivers::Api
         begin
           while bytes_read = output.read(raw_data)
             break if bytes_read == 0 # IO was closed
+            msg = String.new(raw_data[0, bytes_read].dup)
             socket.send(TestMessage.new(
               type: "test_output",
-              output: String.new(raw_data[0, bytes_read].dup).to_json
+              output: msg.scrub.to_json
             ).to_json)
           end
         rescue IO::Error
