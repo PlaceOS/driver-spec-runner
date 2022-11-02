@@ -18,7 +18,9 @@ RUN npx ng build --prod
 
 ###########################
 
-FROM placeos/crystal:latest
+ARG CRYSTAL_VERSION=latest
+
+FROM placeos/crystal:$CRYSTAL_VERSION as build
 WORKDIR /app
 
 # Install the latest version of
