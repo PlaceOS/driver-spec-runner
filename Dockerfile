@@ -1,6 +1,7 @@
 ARG NODE_VERSION=14
 
-FROM node:${NODE_VERSION}-alpine as frontend-build
+# always use x86 for this stage
+FROM --platform=linux/amd64 node:${NODE_VERSION}-alpine as frontend-build
 
 WORKDIR /frontend
 COPY /frontend/package*.json  /frontend
