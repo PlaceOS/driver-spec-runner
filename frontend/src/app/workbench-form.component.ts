@@ -60,7 +60,7 @@ import { SpecTestService } from './services/test.service';
                 [ngModel]="(settings | async).debug_symbols"
                 (ngModelChange)="setSettings({ debug_symbols: $event })"
             >
-                Compile with Debug Symbols
+                Enable remote debugging (experimental)
             </mat-checkbox>
         </div>
     `,
