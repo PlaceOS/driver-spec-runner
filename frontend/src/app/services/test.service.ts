@@ -1,7 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
-import { catchError, filter, map, shareReplay, switchMap } from 'rxjs/operators';
+import {
+    catchError,
+    filter,
+    map,
+    shareReplay,
+    switchMap,
+} from 'rxjs/operators';
 
 import { webSocket } from 'rxjs/webSocket';
 
@@ -45,7 +51,7 @@ export interface TestSettings {
 }
 
 export interface TestResponse {
-    type: 'failure' | 'not_found' | 'success' | 'test_output',
+    type: 'failure' | 'not_found' | 'success' | 'test_output';
     output?: string;
 }
 
@@ -94,7 +100,9 @@ export class SpecTestService {
                     similarity: stringSimilarity(spec, driver),
                 }));
                 comp.sort((a, b) => b.similarity - a.similarity);
-                this._active_spec.next(comp[0].spec);
+                this._active_spec.next(
+                    comp[0].similarity > 0.7 ? comp[0].spec : ''
+                );
             }
         );
     }
@@ -134,35 +142,37 @@ export class SpecTestService {
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
         return this._http
-            .post(url, options, { responseType: 'text' }).pipe(map(data => this._parseResponse(data)))
+            .post(url, options, { responseType: 'text' })
+            .pipe(map((data) => this._parseResponse(data)))
             .toPromise();
     }
 
-    public runSpecWithFeedback(options: RunTestOptions = {}): Observable<string> {
+    public runSpecWithFeedback(
+        options: RunTestOptions = {}
+    ): Observable<string> {
         options = this._generateRunOptions(options);
         const query = toQueryString(options);
         const secure = location.protocol.includes('https');
-        const url = `ws${secure ? 's' : ''}://${location.host}/test/run_spec${query ? '?' + query : ''}`;
+        const url = `ws${secure ? 's' : ''}://${location.host}/test/run_spec${
+            query ? '?' + query : ''
+        }`;
         return webSocket<string>({
             url,
-            deserializer: ({data}) => this._parseResponse(data),
-        }).asObservable().pipe(catchError(_ => of('')));
+            deserializer: ({ data }) => this._parseResponse(data),
+        })
+            .asObservable()
+            .pipe(catchError((_) => of('')));
     }
 
     private _generateRunOptions(options: RunTestOptions = {}) {
         const repo = this._build.getRepository() || options.repository;
         return {
             repository: repo === 'Public' ? undefined : repo,
-            driver:
-                this._build.getDriver() ||
-                options.driver,
+            driver: this._build.getDriver() || options.driver,
             spec: this._active_spec.getValue() || options.spec,
-            commit:
-                this._build.getCommit()?.commit ||
-                options.commit,
+            commit: this._build.getCommit()?.commit || options.commit,
             spec_commit:
-                this._active_commit.getValue()?.commit ||
-                options.spec_commit,
+                this._active_commit.getValue()?.commit || options.spec_commit,
             force: this._settings.getValue().force || options.force,
             debug: this._settings.getValue().debug_symbols || options.debug,
         };
@@ -172,23 +182,29 @@ export class SpecTestService {
         if (type === 'failure') {
             let result = output;
             try {
-                const value = typeof output === 'string' ? JSON.parse(output) : output;
+                const value =
+                    typeof output === 'string' ? JSON.parse(output) : output;
                 result = `${JSON.stringify(value, undefined, 4)}`;
             } catch (e) {}
             console.info(`✗`, result);
             return result;
         } else if (type === 'not_found') {
-            return`\\033[31mTest specifications not found.`;
+            return `\\033[31mTest specifications not found.`;
         } else if (type === 'success') {
             let result = output;
             try {
-                const value = typeof output === 'string' ? JSON.parse(output) : output;
+                const value =
+                    typeof output === 'string' ? JSON.parse(output) : output;
                 result = `${JSON.stringify(value, undefined, 4)}`;
             } catch (e) {}
             console.info(`✓`, result);
             return result;
         }
-        return `${typeof output !== 'string' ? JSON.stringify(output, undefined, 4) : output}`;
+        return `${
+            typeof output !== 'string'
+                ? JSON.stringify(output, undefined, 4)
+                : output
+        }`;
     }
 
     private _parseResponse(data: any) {
@@ -196,7 +212,9 @@ export class SpecTestService {
         try {
             json = JSON.parse(data);
         } catch (e) {}
-        const value = `${typeof json === 'string' ? json : this._processMessage(json)}`;
+        const value = `${
+            typeof json === 'string' ? json : this._processMessage(json)
+        }`;
         return value;
     }
 }

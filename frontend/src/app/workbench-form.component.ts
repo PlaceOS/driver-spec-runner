@@ -35,9 +35,11 @@ import { SpecTestService } from './services/test.service';
         <div class="flex space-x-2 flex-wrap">
             <div class="py-2 flex flex-col flex-1">
                 <label>Spec File</label>
-                <div class="py-4">{{ spec_file | async }}</div>
+                <div class="py-4">
+                    {{ (spec_file | async) || 'No spec file found' }}
+                </div>
             </div>
-            <div class="py-2 flex flex-col flex-1">
+            <div class="py-2 flex flex-col flex-1" *ngIf="spec_file | async">
                 <label>Spec File Commit</label>
                 <mat-form-field appearance="outline">
                     <mat-select
