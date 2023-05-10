@@ -4,3 +4,6 @@ dependencies:
     git: https://github.com/sija/retriable.cr.git
   pars:
     github: spider-gazelle/pars
+  ulid:
+    github: place-labs/ulid
+    branch: master
