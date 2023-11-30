@@ -13,14 +13,14 @@ volumes:
 
 services:
   test:
-    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.6.1}
+    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-latest}
     volumes:
       - ${PWD}/lib:/app/lib:rw
       - ${PWD}/bin:/app/bin:rw
       - ${PWD}/coverage:/app/coverage
       - ${PWD}/shard.lock:/app/shard.lock
+      - ${PWD}/shard.yml:/app/shard.yml.input
       - ${PWD}/shard.override.yml:/app/shard.override.yml
-      - ${PWD}/shard.yml:/app/shard.yml
       - ${PWD}/spec:/app/spec
       - ${PWD}/src:/app/src
       - ${PWD}:/app/repositories/local
@@ -32,10 +32,9 @@ services:
       - build
     environment:
       # Service Hosts
-      << : *redis-client-env
-      << : *build-client-env
+      << : [*redis-client-env,*build-client-env]
       # Environment
-      GITHUB_ACTION: ${GITHUB_ACTION}
+      GITHUB_ACTION: ${GITHUB_ACTION:-}
 
   build:
     image: placeos/build:${PLACE_BUILD_TAG:-nightly}
@@ -54,6 +53,6 @@ services:
       PLACEOS_ENABLE_TRACE: "true"
 
   redis:
-    image: eqalpha/keydb:alpine
+    image: eqalpha/keydb
     restart: always
     hostname: redis
