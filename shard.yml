@@ -11,7 +11,6 @@ targets:
 dependencies:
   action-controller:
     github: spider-gazelle/action-controller
-    version: ~> 4.4
 
   exec_from:
     github: place-labs/exec_from
@@ -27,7 +26,6 @@ dependencies:
 
   placeos-compiler:
     github: placeos/compiler
-    version: ~> 4.3
 
 development_dependencies:
   ameba:
