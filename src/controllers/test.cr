@@ -186,7 +186,7 @@ module PlaceOS::Drivers::Api
         process = nil
         status = nil
 
-        spawn(same_thread: true) do
+        spawn do
           Process.run(
             spec_path,
             nil,
