@@ -246,7 +246,7 @@ module PlaceOS::Drivers
       nil
     end
 
-    def self.with_runner_client
+    def self.with_runner_client(&)
       HTTP::Client.new(Settings.host, Settings.port) do |client|
         yield client
       end

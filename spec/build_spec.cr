@@ -4,9 +4,8 @@ module PlaceOS::Drivers::Api
   describe Build do
     describe "GET /build" do
       it "should list drivers" do
-        context = Api::Build.with_request("GET", "/build?repository=private_drivers", &.index)
-
-        drivers = Array(String).from_json(context.response.output.to_s)
+        resp = client.get(Build.base_route + "?repository=private_drivers")
+        drivers = Array(String).from_json(resp.body)
         drivers.should_not be_empty
         drivers.should contain("drivers/place/private_helper.cr")
       end
@@ -14,25 +13,24 @@ module PlaceOS::Drivers::Api
 
     describe "POST /build" do
       it "should build a driver" do
-        Api::Build
-          .with_request("POST", "/build?commit=#{DRIVER_COMMIT}&repository=private_drivers&driver=drivers/place/private_helper.cr", &.create)
-          .response
-          .status_code.should eq(201)
+        params = HTTP::Params.encode({"commit" => DRIVER_COMMIT, "repository" => "private_drivers", "driver" => "drivers/place/private_helper.cr"})
+        resp = client.post(Build.base_route + "?#{params}")
+        resp.status_code.should eq(201)
       end
     end
 
     describe "GET /build/driver/:driver" do
       it "should list compiled versions" do
-        Api::Build
-          .with_request("POST", "/build?commit=#{DRIVER_COMMIT}&repository=private_drivers&driver=src/place/private_helper.cr", &.create)
-          .response.status
+        params = HTTP::Params.encode({"commit" => DRIVER_COMMIT, "repository" => "private_drivers", "driver" => "drivers/place/private_helper.cr"})
+        resp = client.post(Build.base_route + "?#{params}")
+        resp.status
           .success?
           .should be_true
 
-        context = Api::Build.with_request("GET", "/build/src%2Fplace%2Fprivate_helper.cr", route_params: {"driver" => "src/place/private_helper.cr"}, &.show)
-
+        params = HTTP::Params.encode({"driver" => "drivers/place/private_helper.cr"})
+        resp = client.get(Build.base_route + "/#{params}")
         Array(PlaceOS::Model::Executable)
-          .from_json(context.response.output.to_s)
+          .from_json(resp.body)
           .tap(&.should_not be_empty)
           .first
           .filename
@@ -42,8 +40,11 @@ module PlaceOS::Drivers::Api
 
     describe "GET /build/driver/:driver/commits" do
       it "should list commits" do
-        context = Api::Build.with_request("GET", "/build/src%2Fplace%2Fprivate_helper.cr/commits?repository=private_drivers", route_params: {"driver" => "src/place/private_helper.cr"}, &.commits)
-        Array(PlaceOS::Compiler::Git::Commit).from_json(context.response.output.to_s).should_not be_empty
+        resp = client.get(Build.base_route + "/src%2Fplace%2Fprivate_helper.cr/commits?repository=private_drivers")
+        resp.status
+          .success?
+          .should be_true
+        Array(PlaceOS::Compiler::Git::Commit).from_json(resp.body).should_not be_empty
       end
     end
   end

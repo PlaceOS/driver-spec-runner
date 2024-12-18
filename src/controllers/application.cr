@@ -5,7 +5,9 @@ require "uuid"
 
 module PlaceOS::Drivers::Api
   abstract class Application < ActionController::Base
-    before_action :set_request_id
+    macro inherited
+      Log = ::Log.for({{ @type }})
+    end
 
     class_getter binary_store = PlaceOS::Build::Filesystem.new
 
@@ -26,10 +28,24 @@ module PlaceOS::Drivers::Api
 
     ###########################################################################
 
-    # Support request tracking
+    getter request_id : String do
+      request.headers["X-Request-ID"]? || UUID.random.to_s
+    end
+
+    # This makes it simple to match client requests with server side logs.
+    # When building microservices this ID should be propagated to upstream services.
+    @[AC::Route::Filter(:before_action)]
     def set_request_id
-      Log.context.set(client_ip: client_ip)
-      response.headers["X-Request-ID"] = Log.context.metadata[:request_id].as_s
+      Log.context.set(
+        client_ip: client_ip,
+        request_id: request_id
+      )
+      response.headers["X-Request-ID"] = request_id
+    end
+
+    @[AC::Route::Filter(:before_action)]
+    def set_date_header
+      response.headers["Date"] = HTTP.format_time(Time.utc)
     end
 
     getter working_directory : String = Path["./repositories"].expand.to_s
@@ -43,7 +59,7 @@ module PlaceOS::Drivers::Api
       Compiler::Git.repository_path(repository, working_directory)
     end
 
-    def with_temporary_repository
+    def with_temporary_repository(&)
       temporary_working_directory = File.join(Dir.tempdir, UUID.random.to_s)
       Dir.mkdir_p(temporary_working_directory)
 
@@ -81,7 +97,7 @@ module PlaceOS::Drivers::Api
 
       PlaceOS::Build::Client.client do |client|
         client.repository_path = repository_path
-        client.compile(file: driver, url: "local", commit: commit, force_recompile: force_recompile) do |key, io|
+        client.compile(file: driver, url: "local", repository_path: Path[working_directory, repository].to_s, commit: commit, force_recompile: force_recompile) do |key, io|
           binary_store.write(key, io)
         end
       end

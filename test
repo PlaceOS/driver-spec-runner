@@ -5,7 +5,7 @@ set -e
 # this function is called when Ctrl-C is sent
 function trap_ctrlc ()
 {
-    docker-compose down
+    docker compose down
     exit 2
 }
 
@@ -15,8 +15,8 @@ trap "trap_ctrlc" 2
 
 exit_code="0"
 
-docker-compose run --rm test $@ || exit_code="$?"
+docker compose run --rm test $@ || exit_code="$?"
 
-docker-compose down
+docker compose down
 
 exit ${exit_code}

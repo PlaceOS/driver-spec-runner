@@ -7,15 +7,8 @@ module PlaceOS::Drivers::Api
   class Build < Application
     base "/build"
 
-    id_param :driver
-
-    # Build a drvier, optionally based on the version specified
-    #
-    def create
-      compilation_response(build_driver(driver, commit, force?))
-    end
-
     # List the available files
+    @[AC::Route::GET("/")]
     def index
       compiled = params["compiled"]?
       result = PlaceOS::Build::Client.client do |client|
@@ -29,9 +22,18 @@ module PlaceOS::Drivers::Api
       render json: result
     end
 
+    @[AC::Route::GET("/:driver")]
     def show
       entrypoint = route_params["driver"]
       render json: PlaceOS::Build::Client.client(&.query(file: entrypoint))
+    end
+
+    # Build a drvier, optionally based on the version specified
+    #
+    @[AC::Route::POST("/")]
+    def create
+      result = build_driver(driver, commit, force?)
+      compilation_response(result)
     end
 
     # grab the list of available repositories

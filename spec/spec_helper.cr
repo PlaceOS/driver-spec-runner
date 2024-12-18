@@ -1,3 +1,4 @@
+require "action-controller/spec_helper"
 require "spec"
 
 # Your application config
@@ -5,42 +6,32 @@ require "spec"
 require "../src/config"
 
 # Helper methods for testing controllers (curl, with_server, context)
-require "../lib/action-controller/spec/curl_context"
+# require "../lib/action-controller/spec/curl_context"
 
 require "placeos-compiler"
 
-class MockServer
-  include ActionController::Router
+module PlaceOS::Api::SpecClient
+  # Can't use ivars at top level, hence this hack
+  private CLIENT = ActionController::SpecHelper.client
 
-  def initialize
-    init_routes
-  end
-
-  private def init_routes
-    {% for klass in ActionController::Base::CONCRETE_CONTROLLERS %}
-      {{klass}}.__init_routes__(self)
-    {% end %}
+  def client
+    CLIENT
   end
 end
 
-abstract class PlaceOS::Drivers::Api::Application < ActionController::Base
-  def self.with_request(verb, path, expect_failure = false, route_params = nil)
-    io = IO::Memory.new
-    context = context(verb.upcase, path)
+include PlaceOS::Api::SpecClient
 
-    context.route_params = route_params if route_params
-
-    MOCK_SERVER.route_handler.search_route(verb, path, "#{verb.downcase}#{path}", context)
-    context.response.output = io
-
-    yield new(context)
-
-    context.response.status.success?.should(expect_failure ? be_false : be_true)
-    context
+abstract class ActionController::Base
+  macro inherited
+    macro finished
+      {% begin %}
+      def self.base_route
+        NAMESPACE[0]
+      end
+      {% end %}
+    end
   end
 end
-
-MOCK_SERVER = MockServer.new
 
 DRIVER_COMMIT = "265518b"
 SPEC_COMMIT   = "d1b51ac"
@@ -52,4 +43,41 @@ Spec.before_suite do
     "private_drivers",
     "https://github.com/placeos/private-drivers"
   )
+end
+
+::CURL_CONTEXT__ = [] of ActionController::Server
+
+macro with_server(&block)
+  if ::CURL_CONTEXT__.empty?
+    %app = ActionController::Server.new
+    ::CURL_CONTEXT__ << %app
+    %channel = Channel(Nil).new(1)
+
+    Spec.before_each do
+      %app.reload
+      %app.socket.bind_tcp("127.0.0.1", 6000, true)
+      begin
+        File.delete("/tmp/spider-socket.sock")
+      rescue
+      end
+      %app.socket.bind_unix "/tmp/spider-socket.sock"
+      spawn do
+        %channel.send(nil)
+        %app.run
+      end
+      %channel.receive
+    end
+
+    Spec.after_each do
+      %app.close
+    end
+  end
+
+  %app = ::CURL_CONTEXT__[0]
+
+  {% if block.args.size > 0 %}
+    {{block.args[0].id}} = %app
+  {% end %}
+
+  {{block.body}}
 end

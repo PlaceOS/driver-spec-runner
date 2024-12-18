@@ -1,0 +1,4 @@
+Naming/BlockParameterName:
+  Description: Disallows non-descriptive block parameter names
+  Enabled: false
+  Severity: Convention
