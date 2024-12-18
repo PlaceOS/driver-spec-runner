@@ -4,8 +4,6 @@ module PlaceOS::Drivers::Api
   class Test < Application
     base "/test"
 
-    id_param :driver
-
     @driver_path : String? = nil
     @spec_path : String? = nil
 
@@ -22,7 +20,7 @@ module PlaceOS::Drivers::Api
     getter spec_commit : String? { params["spec_commit"]? }
 
     # Specs available
-    def index
+    get "/", :index do
       result = Dir.cd(repository_path) do
         Dir.glob("drivers/**/*_spec.cr")
       end
@@ -41,7 +39,7 @@ module PlaceOS::Drivers::Api
     end
 
     # Run the spec and return success if the exit status is 0
-    def create
+    post "/", :create do
       @driver_path, @spec_path = {
         {driver, commit},
         {spec, spec_commit},
@@ -205,14 +203,14 @@ module PlaceOS::Drivers::Api
         select
         when channel.receive
         when closed_channel.receive?
-          process.not_nil!.signal(:kill)
+          process.try &.signal(:kill)
           channel.receive
         when timeout(5.minutes)
-          process.not_nil!.signal(:kill)
+          process.try &.signal(:kill)
           channel.receive
         end
 
-        exit_code = status.not_nil!.exit_code
+        exit_code = status.try &.exit_code || 1
         io << "spec runner exited with #{exit_code}\n"
         Log.error { memory.to_s } unless exit_code.zero?
 
