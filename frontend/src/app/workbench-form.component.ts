@@ -9,8 +9,14 @@ import { SpecTestService } from './services/test.service';
             <header
                 class="bg-base-200 m-2 flex h-14 w-[calc(100%-1rem)] items-center justify-between rounded border-none px-4 py-2"
             >
-                <h3 class="text-xl font-medium">
-                    {{ 'WORKBENCH_HEADER' | translate }}
+                <h3
+                    class="flex w-full items-center justify-between space-x-4 text-xl font-medium"
+                >
+                    <div>{{ 'WORKBENCH_HEADER' | translate }}</div>
+                    <div
+                        class="bg-base-100 border-base-300 rounded-md border px-2 py-1 font-mono text-xs"
+                        [innerHTML]="driver | async | driverFormat | safe"
+                    ></div>
                 </h3>
             </header>
             <div class="grid w-full grid-cols-2 gap-4 px-4 pb-4">
