@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -43,6 +44,7 @@ const MAT_MODULES: any[] = [
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    MatMenuModule,
 ];
 
 const ANGULAR_MODULES: any[] = [FormsModule, ReactiveFormsModule];

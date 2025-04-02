@@ -17,5 +17,20 @@
     "WORKBENCH_HEADER": "Test Driver",
     "TESTS_RUN": "Run Tests",
     "TESTS_CANCEL": "Cancel Tests",
-    "TESTS_RESULTS_EMPTY": "No test results to display"
+    "TESTS_RESULTS_EMPTY": "No test results to display",
+    "LANGUAGE_WORD": "Language",
+    "LANGUAGE_SELECT": "Select a language",
+    "LANGUAGE": {
+        "ENGLISH": "English",
+        "ENGLISH_US": "English (US)",
+        "ENGLISH_GB": "English (British)",
+        "FRENCH": "French",
+        "FRENCH_CA": "French (Canadian)",
+        "SPANISH": "Spanish",
+        "PORTUGESE": "Portugese",
+        "ITALIAN": "Italian",
+        "CHINESE": "Chinese",
+        "ARABIC": "Arabic",
+        "JAPANESE": "Japanese"
+    }
 }

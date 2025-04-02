@@ -38,7 +38,7 @@ a[btn] {
         --color: var(--color-success-content);
     }
 
-    &[disabled] {
+    &:not([disabled="false"])[disabled] {
         --bg-color: var(--color-base-400);
         --color: var(--color-base-content);
         opacity: 0.3;
