@@ -7,6 +7,45 @@
     top: -4px;
 }
 
+button[btn],
+a[btn] {
+    --bg-color: var(--color-ternary);
+    --color: var(--color-ternary-content);
+    background-color: var(--bg-color);
+    border: 1px solid var(--bg-color);
+    color: var(--color);
+    padding: 0 1rem;
+    min-height: 3rem;
+    border-radius: 0.25rem;
+
+    &.inverse {
+        color: var(--bg-color);
+        background-color: transparent;
+    }
+
+    &.info {
+        --bg-color: var(--color-info);
+        --color: var(--color-info-content);
+    }
+
+    &.error {
+        --bg-color: var(--color-error);
+        --color: var(--color-error-content);
+    }
+
+    &.success {
+        --bg-color: var(--color-success);
+        --color: var(--color-success-content);
+    }
+
+    &[disabled] {
+        --bg-color: var(--color-base-400);
+        --color: var(--color-base-content);
+        opacity: 0.3;
+        pointer-events: none;
+    }
+}
+
 button.mat-button,
 a[button],
 .dark-mode button.mat-button,

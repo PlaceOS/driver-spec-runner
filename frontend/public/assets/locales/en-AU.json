@@ -1,0 +1,21 @@
+{
+    "APP_TITLE": "Driver Spec Runner",
+    "FILTER": "Filter driver list...",
+    "LIST_EMPTY": "No drivers",
+    "REPO_LIST_EMPTY": "No repositories",
+    "DRIVER_SELECT": "Select a driver from the sidebar to begin",
+    "DRIVER_COUNT": "{{ count }} driver(s)",
+    "DRIVER_LIST_END": "End of driver list",
+    "DRIVER": "Driver",
+    "REPOSITORY": "Repository",
+    "GIT_COMMIT": "Commit",
+    "GIT_COMMIT_LATEST": "Latest Commit",
+    "TEST_SPEC_FILE": "Test Specification File",
+    "TEST_SPEC_FILE_EMPTY": "No Test .spec file found",
+    "TEST_SPEC_FILE_COMMIT": "Test File Commit",
+    "ALLOW_REMOTE_DEBUGGING": "Enable remote debugging (experimental)",
+    "WORKBENCH_HEADER": "Test Driver",
+    "TESTS_RUN": "Run Tests",
+    "TESTS_CANCEL": "Cancel Tests",
+    "TESTS_RESULTS_EMPTY": "No test results to display"
+}

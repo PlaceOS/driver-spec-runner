@@ -1,25 +1,19 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
-import {
-    catchError,
-    filter,
-    map,
-    shareReplay,
-    switchMap,
-} from 'rxjs/operators';
+import { catchError, filter, shareReplay, switchMap } from 'rxjs/operators';
 
 import { webSocket } from 'rxjs/webSocket';
 
 import { stringSimilarity } from 'string-similarity-js';
 
+import { apiEndpoint, toQueryString } from '../common/api';
+import { get, post } from '../common/http';
 import {
     CommitOptions,
+    LATEST_COMMIT,
     RepositoryCommit,
     SpecBuildService,
-    LATEST_COMMIT,
 } from './build.service';
-import { apiEndpoint, toQueryString } from '../common/api';
 
 export interface SpecQueryOptions {
     /** Name of a third party repository */
@@ -60,9 +54,9 @@ export interface TestResponse {
 })
 export class SpecTestService {
     /** Currently active repository */
-    private _active_spec = new BehaviorSubject<string>(null);
+    private _active_spec = new BehaviorSubject<string>('');
     /** Currently active repository */
-    private _active_commit = new BehaviorSubject<RepositoryCommit>(null);
+    private _active_commit = new BehaviorSubject<RepositoryCommit | null>(null);
     /** Currently active repository */
     private _settings = new BehaviorSubject<TestSettings>({});
 
@@ -72,38 +66,40 @@ export class SpecTestService {
 
     public readonly settings = this._settings.asObservable();
 
-    public readonly spec_list = this._build.active_repo.pipe(
-        switchMap((repo) =>
-            this.loadSpecFiles({
-                repository: repo === 'Public' ? undefined : repo,
-            })
-        ),
-        shareReplay()
-    );
+    public get spec_list() {
+        return this._build.active_repo.pipe(
+            switchMap((repo: string) =>
+                this.loadSpecFiles({
+                    repository: repo === 'Public' ? '' : repo,
+                }),
+            ),
+            shareReplay(),
+        );
+    }
 
     public readonly commit_list = this._active_spec.pipe(
         filter((i) => !!i),
         switchMap((i) =>
             this.loadSpecCommits(i, {
                 repository: i === 'Public' ? undefined : i,
-            })
+            }),
         ),
-        shareReplay()
+        shareReplay(),
     );
 
-    constructor(private _http: HttpClient, private _build: SpecBuildService) {
+    constructor(private _build: SpecBuildService) {
         combineLatest([this._build.active_driver, this.spec_list]).subscribe(
-            async (details) => {
+            async (details: any) => {
                 const [driver, list] = details;
-                const comp = list.map((spec) => ({
+                const comp = list.map((spec: string) => ({
                     spec,
                     similarity: stringSimilarity(spec, driver),
                 }));
-                comp.sort((a, b) => b.similarity - a.similarity);
+                comp.sort((a: any, b: any) => b.similarity - a.similarity);
                 this._active_spec.next(
-                    comp[0].similarity > 0.7 ? comp[0].spec : ''
+                    comp[0].similarity > 0.7 ? comp[0].spec : '',
                 );
-            }
+            },
         );
     }
 
@@ -120,19 +116,19 @@ export class SpecTestService {
     }
 
     public async loadSpecFiles(
-        options: SpecQueryOptions = {}
+        options: SpecQueryOptions = {},
     ): Promise<string[]> {
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
-        return this._http.get<string[]>(url).toPromise();
+        return get(url);
     }
 
     public async loadSpecCommits(
         id: string,
-        options: CommitOptions
+        options: CommitOptions,
     ): Promise<RepositoryCommit[]> {
         const url = `${apiEndpoint()}/test/${encodeURIComponent(id)}/commits`;
-        const list = await this._http.get<RepositoryCommit[]>(url).toPromise();
+        const list = await get(url);
         this._active_commit.next(LATEST_COMMIT);
         return [LATEST_COMMIT, ...list];
     }
@@ -141,14 +137,13 @@ export class SpecTestService {
         options = this._generateRunOptions(options);
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
-        return this._http
-            .post(url, options, { responseType: 'text' })
-            .pipe(map((data) => this._parseResponse(data)))
-            .toPromise();
+        return post(url, query, 'text').then((data) =>
+            this._parseResponse(data),
+        );
     }
 
     public runSpecWithFeedback(
-        options: RunTestOptions = {}
+        options: RunTestOptions = {},
     ): Observable<string> {
         options = this._generateRunOptions(options);
         const query = toQueryString(options);
@@ -179,8 +174,8 @@ export class SpecTestService {
     }
 
     private _processMessage({ type, output }: TestResponse): string {
+        let result = output || '';
         if (type === 'failure') {
-            let result = output;
             try {
                 const value =
                     typeof output === 'string' ? JSON.parse(output) : output;
@@ -191,7 +186,6 @@ export class SpecTestService {
         } else if (type === 'not_found') {
             return `\\033[31mTest specifications not found.`;
         } else if (type === 'success') {
-            let result = output;
             try {
                 const value =
                     typeof output === 'string' ? JSON.parse(output) : output;

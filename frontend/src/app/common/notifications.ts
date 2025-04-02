@@ -25,7 +25,7 @@ export function notify(
         type: 'icon',
         class: 'material-icons',
         content: 'info',
-    }
+    },
 ): void {
     if (!_service) {
         throw new Error("Snackbar service hasn't been initialised");
@@ -36,7 +36,7 @@ export function notify(
     });
     if (action) {
         on_action = on_action || (() => snackbar_ref.dismiss());
-        snackbar_ref.onAction().subscribe(() => on_action());
+        snackbar_ref.onAction().subscribe(() => on_action!());
     }
 }
 
@@ -46,7 +46,11 @@ export function notify(
  * @param action Display text for the callback action
  * @param on_action Callback of action on the notification
  */
-export function notifySuccess(msg: string, action?: string, on_action?: () => void): void {
+export function notifySuccess(
+    msg: string,
+    action?: string,
+    on_action?: () => void,
+): void {
     const icon: ApplicationIcon = {
         type: 'icon',
         class: 'material-icons',
@@ -62,7 +66,11 @@ export function notifySuccess(msg: string, action?: string, on_action?: () => vo
  * @param action Display text for the callback action
  * @param on_action Callback of action on the notification
  */
-export function notifyError(msg: string, action?: string, on_action?: () => void): void {
+export function notifyError(
+    msg: string,
+    action?: string,
+    on_action?: () => void,
+): void {
     const icon: ApplicationIcon = {
         type: 'icon',
         class: 'material-icons',
@@ -78,7 +86,11 @@ export function notifyError(msg: string, action?: string, on_action?: () => void
  * @param action Display text for the callback action
  * @param on_action Callback of action on the notification
  */
-export function notifyWarn(msg: string, action?: string, on_action?: () => void): void {
+export function notifyWarn(
+    msg: string,
+    action?: string,
+    on_action?: () => void,
+): void {
     const icon: ApplicationIcon = {
         type: 'icon',
         class: 'material-icons',
@@ -94,7 +106,11 @@ export function notifyWarn(msg: string, action?: string, on_action?: () => void)
  * @param action Display text for the callback action
  * @param on_action Callback of action on the notification
  */
-export function notifyInfo(msg: string, action?: string, on_action?: () => void): void {
+export function notifyInfo(
+    msg: string,
+    action?: string,
+    on_action?: () => void,
+): void {
     console.info(msg);
     notify('info', msg, action, on_action);
 }

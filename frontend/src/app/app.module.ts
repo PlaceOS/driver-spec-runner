@@ -1,19 +1,18 @@
+import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ServiceWorkerModule } from '@angular/service-worker';
-import { HttpClientModule } from '@angular/common/http';
-import { NgModule } from '@angular/core';
 
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 
+import { environment } from '../environments/environment';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { environment } from '../environments/environment';
 
 import { UIModule } from './ui/ui.module';
-import { WorkbenchComponent } from './workbench.component';
 import { WorkbenchFormComponent } from './workbench-form.component';
 import { WorkbenchOutputComponent } from './workbench-output.component';
+import { WorkbenchComponent } from './workbench.component';
 
 @NgModule({
     declarations: [
@@ -27,7 +26,6 @@ import { WorkbenchOutputComponent } from './workbench-output.component';
         AppRoutingModule,
         BrowserAnimationsModule,
         MatSnackBarModule,
-        HttpClientModule,
         UIModule,
         ServiceWorkerModule.register('ngsw-worker.js', {
             enabled: environment.production,

@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { debounceTime, share, shareReplay, switchMap } from 'rxjs/operators';
 
 import { apiEndpoint, toQueryString } from '../common/api';
+import { del, get, post } from '../common/http';
 import { HashMap } from '../common/types';
 
 export interface DriverListingOptions {
@@ -49,7 +49,7 @@ export const LATEST_COMMIT = {
     subject: 'Latest Commit',
     author: 'system',
     commit: 'HEAD',
-    date: new Date().toISOString()
+    date: new Date().toISOString(),
 };
 
 @Injectable({
@@ -61,11 +61,11 @@ export class SpecBuildService {
     /** Currently available repositories */
     private _repo_list = new BehaviorSubject<string[]>([]);
     /** Currently active repository */
-    private _active_repo = new BehaviorSubject<string>(null);
+    private _active_repo = new BehaviorSubject<string>('');
     /** Currently active repository */
-    private _active_driver = new BehaviorSubject<string>(null);
+    private _active_driver = new BehaviorSubject<string>('');
     /** Currently active repository */
-    private _active_commit = new BehaviorSubject<RepositoryCommit>(null);
+    private _active_commit = new BehaviorSubject<RepositoryCommit | null>(null);
     /** Currently active repository */
     private _test_statuses = new BehaviorSubject<HashMap<string>>({});
 
@@ -83,14 +83,14 @@ export class SpecBuildService {
     public readonly driver_list = this._active_repo.pipe(
         debounceTime(300),
         switchMap((i) =>
-            this.loadDrivers({ repository: i === 'Public' ? undefined : i })
+            this.loadDrivers({ repository: i === 'Public' ? undefined : i }),
         ),
-        shareReplay()
+        shareReplay(),
     );
     /** Currently available drivers */
     public readonly driver_versions = this._active_driver.pipe(
         switchMap((i) => this.loadDriverVersions(i)),
-        shareReplay()
+        shareReplay(),
     );
     /** Observable of the currently selected repository */
     public readonly active_driver = this._active_driver.asObservable();
@@ -103,13 +103,17 @@ export class SpecBuildService {
             const [repo, driver] = i;
             return this.loadDriverCommits(driver, { repository: repo });
         }),
-        share()
+        share(),
     );
 
-    constructor(private _http: HttpClient) {
+    constructor() {
         this.loadRepositories();
-        this._test_statuses.next(JSON.parse(localStorage.getItem('HARNESS.statuses') || '{}'));
-        this._test_statuses.subscribe((status) => localStorage.setItem('HARNESS.statuses', JSON.stringify(status)));
+        this._test_statuses.next(
+            JSON.parse(localStorage.getItem('HARNESS.statuses') || '{}'),
+        );
+        this._test_statuses.subscribe((status) =>
+            localStorage.setItem('HARNESS.statuses', JSON.stringify(status)),
+        );
     }
 
     public getRepository(): string {
@@ -125,12 +129,14 @@ export class SpecBuildService {
     }
 
     public getCommit(): RepositoryCommit {
-        return this._active_commit.getValue();
+        return this._active_commit.getValue()!;
     }
 
     public setTestStatus(status: 'passed' | 'failed' | ''): void {
         const statuses = { ...this._test_statuses.getValue() };
-        statuses[`${this._active_repo.getValue()}|${this._active_driver.getValue()}`] = status;
+        statuses[
+            `${this._active_repo.getValue()}|${this._active_driver.getValue()}`
+        ] = status;
         this._test_statuses.next(statuses);
     }
 
@@ -149,8 +155,10 @@ export class SpecBuildService {
     }
 
     public async loadRepositories(): Promise<void> {
+        console.log('Load repos');
         const url = `${apiEndpoint()}/build/repositories`;
-        const repo_list = await this._http.get<string[]>(url).toPromise();
+        const repo_list = await get(url);
+        console.log('Repo List:', repo_list);
         const list = ['Public', ...repo_list.filter((i) => i[0] !== '.')];
         this._repo_list.next(list);
         if (!this._active_repo.getValue()) {
@@ -159,50 +167,50 @@ export class SpecBuildService {
     }
 
     public async loadRepositoryCommits(
-        options: CommitOptions = {}
+        options: CommitOptions = {},
     ): Promise<RepositoryCommit[]> {
         const url = `${apiEndpoint()}/build/repositories_commits`;
-        const list = await this._http.get<RepositoryCommit[]>(url).toPromise();
+        const list = await get(url);
         return [LATEST_COMMIT, ...list];
     }
 
     public async loadDrivers(
-        options: DriverListingOptions = {}
+        options: DriverListingOptions = {},
     ): Promise<string[]> {
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/build${query ? '?' + query : ''}`;
-        return this._http.get<string[]>(url).toPromise();
+        return get(url);
     }
 
     public async loadDriverCommits(
         id: string,
-        options: CommitOptions = {}
+        options: CommitOptions = {},
     ): Promise<RepositoryCommit[]> {
         const url = `${apiEndpoint()}/build/${encodeURIComponent(id)}/commits`;
-        const list = await this._http.get<RepositoryCommit[]>(url).toPromise();
+        const list = await get(url);
         this._active_commit.next(LATEST_COMMIT);
         return [LATEST_COMMIT, ...list];
     }
 
     public async loadDriverVersions(id: string): Promise<string[]> {
         const url = `${apiEndpoint()}/build/${encodeURIComponent(id)}`;
-        return this._http.get<string[]>(url).toPromise();
+        return get(url);
     }
 
     public async cleanDriverVersions(
         id: string,
-        options: DriverClearOptions
+        options: DriverClearOptions,
     ): Promise<void> {
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/build/${encodeURIComponent(id)}${
             query ? '?' + query : ''
         }`;
-        return this._http.delete<void>(url).toPromise();
+        return del(url);
     }
 
     public async compileDriver(options: DriverCompileOptions): Promise<void> {
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/build`;
-        return this._http.post<void>(url, query).toPromise();
+        return post(url, query);
     }
 }

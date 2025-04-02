@@ -1,8 +1,285 @@
 
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
-/* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+
+@theme {
+    /* Primary */
+    --color-primary: hsl(336, 57%, 48%); /* Primary Colour */
+    --color-primary-focus: hsl(336, 57%, 38%); /* Darker shade (Hover etc.) */
+    --color-primary-content: hsl(0, 0%, 100%); /* White content(text) for contrast */
+
+    /* Secondary */
+    --color-secondary: hsl(237, 37%, 20%); /* #292F5B */
+    --color-secondary-focus: hsl(237, 37%, 10%); /* Darker shade (Hover etc.) */
+    --color-secondary-content: hsl(0, 0%, 100%); /* White content(text) for contrast */
+
+    /* Ternary */
+    --color-ternary: hsl(206, 23%, 30%); /* #E5E5EA */
+    --color-ternary-focus: hsl(206, 23%, 24%); /* Darker shade */
+    --color-ternary-content: hsl(0, 0%, 80%); /* Black content for contrast */
+
+    /* Accent (Complementary color to Primary) */
+    --color-accent: hsl(156, 57%, 48%); /* A contrasting greenish tone */
+    --color-accent-focus: hsl(156, 57%, 38%); /* Darker shade of the a */
+    --color-accent-content: hsl(0, 0%, 0%); /* Black content(text) for contrast */
+
+    /* Neutral */
+    --color-neutral: hsl(0, 0%, 20%); /* Grey */
+    --color-neutral-focus: hsl(0, 0%, 30%); /* Darker Grey */
+    --color-neutral-content: hsl(0, 0%, 100%); /* White content(text) */
+
+    /* Base */
+    --color-base-100: hsl(0, 0%, 98%); /* Near White */
+    --color-base-200: hsl(0, 0%, 90%); /* Light Grey */
+    --color-base-300: hsl(0, 0%, 82%); /* Mid-Light Grey */
+    --color-base-400: hsl(0, 0%, 72%); /* Mid Grey */
+    --color-base-content: hsl(0, 0%, 0%); /* Black content on white background */
+
+    /* Info */
+    --color-info: hsla(217, 91%, 60%, 1); /* Blue */
+    --color-info-light: hsla(
+        214,
+        100%,
+        97%,
+        1
+    ); /* Light Blue for use with base content colour */
+    --color-info-content: hsl(0, 0%, 100%); /* White content(text) on light blue background */
+
+    /* Success */
+    --color-success: hsla(118, 50%, 43%, 1); /* Green */
+    --color-success-light: hsla(
+        152,
+        81%,
+        96%,
+        1
+    ); /* Light Green for use with base content colour */
+    --color-success-content: hsl(0, 0%, 100%); /* White content on light green background */
+
+    /* Warning */
+    --color-warn: hsla(45, 100%, 64%, 1); /* Yellow */
+    --color-warn-light: hsla(
+        48,
+        100%,
+        96%,
+        1
+    ); /* Light Yellow for use with base content colour */
+    --color-warn-content: hsl(0, 0%, 0%); /* Black content on yellow background */
+
+    /* Error */
+    --color-error: hsla(354, 75%, 53%, 1); /* Red */
+    --color-error-light: hsla(
+        356,
+        100%,
+        97%,
+        1
+    ); /* Light Red for use with base content colour */
+    --color-error-content: hsl(0, 0%, 100%); /* White content on red background */
+}
+
+#placeos .theme-dark {
+    /* @theme { */
+        /* Primary */
+        --color-primary: hsl(237, 37%, 20%); /* #292F5B */
+        --color-primary-focus: hsl(237, 37%, 10%); /* Lighter shade (Hover etc.) */
+        --color-primary-focus: hsl(0, 0%, 100%); /* White content(text) for contrast */
+    
+        /* Secondary */
+        --color-secondary: hsl(237, 37%, 20%); /* #292F5B */
+        --color-secondary-focus: hsl(237, 37%, 10%); /* Darker shade (Hover etc.) */
+        --color-secondary-content: hsl(0, 0%, 100%); /* White content(text) for contrast */
+    
+        /* Ternary */
+        --color-ternary: hsl(206, 23%, 30%); /* #E5E5EA */
+        --color-ternary-focus: hsl(206, 23%, 24%); /* Darker shade */
+        --color-ternary-content: hsl(0, 0%, 80%); /* Black content for contrast */
+    
+        /* Accent */
+        --color-accent: hsl(156, 57%, 28%); /* Darker shade of complementary color */
+        --color-accent-focus: hsl(158, 17%, 9%); /* Even darker shade */
+        --color-accent-content: hsl(0, 0%, 80%); /* Lighter text(text) for contrast */
+    
+        /* Neutral */
+        --color-neutral: hsl(0, 0%, 20%); /* Dark Grey */
+        --color-neutral-focus: hsl(0, 0%, 15%); /* Even darker Grey */
+        --color-neutral-content: hsl(0, 0%, 80%); /* Light grey text for contrast */
+    
+        /* Base */
+        --color-base-100: hsl(0, 0%, 10%); /* Near Black */
+        --color-base-200: hsl(0, 0%, 15%); /* Dark Grey */
+        --color-base-300: hsl(0, 0%, 20%); /* Mid-Dark Grey */
+        --color-base-400: hsl(0, 0%, 25%); /* Mid Grey */
+        --color-base-content: hsl(0, 0%, 80%); /* Light grey text for contrast */
+    
+        /* Info */
+        --color-info: hsla(217, 91%, 60%, 1); /* Blue */
+        --color-info-light: hsla(
+            214,
+            100%,
+            97%,
+            1
+        ); /* Light Blue for use with base content colour */
+        --color-info-content: hsl(0, 0%, 100%); /* White content on light blue background */
+    
+        /* Success */
+        --color-success: hsla(118, 50%, 43%, 1); /* Green */
+        --color-success-light: hsla(
+            152,
+            81%,
+            96%,
+            1
+        ); /* Light Green for use with base content colour */
+        --color-success-content: hsl(0, 0%, 100%); /* White content on light green background */
+    
+        /* Warning */
+        --color-warn: hsla(45, 100%, 64%, 1); /* Yellow */
+        --color-warn-light: hsla(
+            48,
+            100%,
+            96%,
+            1
+        ); /* Light Yellow for use with base content colour */
+        --color-warn-content: hsl(0, 0%, 0%); /* Black content on yellow background */
+    
+        /* Error */
+        --color-error: hsla(354, 75%, 53%, 1); /* Red */
+        --color-error-light: hsla(
+            356,
+            100%,
+            97%,
+            1
+        ); /* Light Red for use with base content colour */
+        --color-error-content: hsl(0, 0%, 100%); /* White content on red background */
+    /* } */
+}
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+#placeos {
+    mat-form-field {
+        &.no-subscript .mat-mdc-form-field-subscript-wrapper {
+            display: none;
+        }
+    }
+
+    .mdc-select-value-text,
+    .mdc-mat-select,
+    .mat-mdc-select-trigger,
+    .mat-mdc-select-value-text,
+    .mat-mdc-select-arrow,
+    .mdc-select-arrow {
+        color: var(--color-base-content);
+    }
+
+
+    mat-pseudo-checkbox.mdc-pseudo-checkbox-checked {
+        background: var(--color-primary);
+    }
+
+    mat-checkbox {
+        .mdc-checkbox__background {
+            border-color: var(--color-neutral);
+            svg {
+                color: var(--color-info-content);
+            }
+        }
+
+        .mdc-label {
+            font-weight: normal;
+            margin: 0;
+        }
+
+        &.mat-mdc-checkbox-checked,
+        &[ng-reflect-indeterminate='true'] {
+            .mdc-checkbox__background {
+                border-color: var(--color-info);
+                background-color: var(--color-info);
+            }
+        }
+    }
+    .mdc-form-field-outline > div {
+        color: var(--color-base-200);
+    }
+
+    .mdc-form-field,
+    .mdc-text-field__input {
+        ::placeholder,
+        .mdc-select-placeholder {
+            color: var(--color-base-200);
+        }
+    }
+
+    .mdc-menu-panel,
+    .mdc-select-panel {
+        @apply bg-neutral;
+    }
+
+    .mdc-option-text {
+        @apply text-base-content;
+    }
+
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__trailing {
+        border-color: var(--color-neutral);
+    }
+
+
+    .mat-mdc-option.mdc-list-item {
+        color: var(--color-base-content);
+        &:hover {
+            background-color: var(--color-base-200);
+        }
+    }
+
+    .mdc-text-field__input{
+        color: var(--color-base-content);
+        &::placeholder {
+            color: var(--color-base-content);
+            opacity: 0.3;
+        }
+    }
+
+    .mdc-list-item__primary-text {
+        display: flex;
+        flex: 1;
+    }
+
+    .mat-mdc-select-panel {
+        background-color: var(--color-base-100);
+        color: var(--color-base-content);
+    }
+
+    mat-snack-bar-container {
+        button.mdc-button {
+            color: inherit;
+        }
+        .mdc-snackbar__label {
+            color: inherit;
+        }
+        &.success {
+            .mdc-snackbar__surface {
+                background-color: var(--color-success);
+                color: var(--color-success-content);
+            }
+        }
+        &.info {
+            .mdc-snackbar__surface {
+                background-color: var(--color-info);
+                color: var(--color-info-content);
+            }
+        }
+        &.error {
+            .mdc-snackbar__surface {
+                background-color: var(--color-error);
+                color: var(--color-error-content);
+            }
+        }
+        &.warning,
+        &.warn,
+        &.pending {
+            .mdc-snackbar__surface {
+                background-color: var(--color-warn);
+                color: var(--color-warn-content);
+            }
+        }
+    }
+}

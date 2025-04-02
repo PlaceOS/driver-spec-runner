@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { BaseClass } from './common/base.class';
+import { AsyncHandler } from './common/async-handler.class';
 import { SpecBuildService } from './services/build.service';
 import { SpecTestService } from './services/test.service';
 
@@ -8,30 +8,43 @@ import { SpecTestService } from './services/test.service';
     template: `
         <div
             name="output"
-            [class]="
-                'absolute inset-0 flex flex-col border-t border-white text-white ' +
-                (fullscreen ? 'fullscreen' : '')
-            "
+            [class.fullscreen]="fullscreen"
+            class="border-base-400 text-neutral-content bg-neutral absolute inset-0 flex flex-col border-t"
         >
-            <div class="flex items-center p-2 w-full space-x-2">
-                <button mat-button (click)="runTestsWithFeedback()">Run Tests</button>
-                <button mat-button *ngIf="running" (click)="cancelTests()">Cancel Tests</button>
+            <div class="flex w-full items-center space-x-2 p-2">
+                <button
+                    btn
+                    matRipple
+                    [disabled]="running"
+                    (click)="runTestsWithFeedback()"
+                >
+                    {{ 'TESTS_RUN' | translate }}
+                </button>
+                <button
+                    btn
+                    matRipple
+                    class="inverse error"
+                    *ngIf="running"
+                    (click)="cancelTests()"
+                >
+                    {{ 'TESTS_CANCEL' | translate }}
+                </button>
                 <mat-spinner *ngIf="running" [diameter]="32"></mat-spinner>
-                <div class="flex-1 w-0"></div>
+                <div class="w-0 flex-1"></div>
                 <button mat-icon-button (click)="fullscreen = !fullscreen">
                     <i class="material-icons">{{
                         fullscreen ? 'keyboard_arrow_down' : 'keyboard_arrow_up'
                     }}</i>
                 </button>
             </div>
-            <div class="flex-1 w-full overflow-auto" #body>
+            <div class="w-full flex-1 overflow-auto" #body>
                 <a-terminal
                     *ngIf="!running || results"
-                    [content]="results || 'No test results to display'"
+                    [content]="results || 'TESTS_RESULTS_EMPTY' | translate"
                     [resize]="fullscreen"
                 ></a-terminal>
             </div>
-            </div>
+        </div>
     `,
     styles: [
         `
@@ -42,7 +55,6 @@ import { SpecTestService } from './services/test.service';
             }
 
             [name='output'] {
-                background-color: #424242;
                 transition: top 200ms;
                 top: 0;
             }
@@ -52,8 +64,9 @@ import { SpecTestService } from './services/test.service';
             }
         `,
     ],
+    standalone: false,
 })
-export class WorkbenchOutputComponent extends BaseClass implements OnInit {
+export class WorkbenchOutputComponent extends AsyncHandler implements OnInit {
     public results: string = '';
     public fullscreen: boolean = false;
     public running: boolean = false;
@@ -61,7 +74,7 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
     public readonly runTests = async () => {
         this.running = true;
         this.results = this.processResults(
-            await this._tests.runSpec({}).catch((i) => i)
+            await this._tests.runSpec({}).catch((i) => i),
         );
         this.running = false;
     };
@@ -72,19 +85,22 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
         if (localStorage.getItem('DEBUG_WITH_API')) {
             this.runTests();
         } else {
-            this.subscription('test', this._tests.runSpecWithFeedback().subscribe(
-                (data) => this.results += this.processResults(data), 
-                () => this.running = false, 
-                () => this.running = false
-            ));
+            this.subscription(
+                'test',
+                this._tests.runSpecWithFeedback().subscribe(
+                    (data) => (this.results += this.processResults(data)),
+                    () => (this.running = false),
+                    () => (this.running = false),
+                ),
+            );
         }
-    }
+    };
 
     @ViewChild('body') private _body_el: ElementRef<HTMLDivElement>;
 
     constructor(
         private _build: SpecBuildService,
-        private _tests: SpecTestService
+        private _tests: SpecTestService,
     ) {
         super();
     }
@@ -92,7 +108,7 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
     public ngOnInit(): void {
         this.subscription(
             'driver',
-            this._build.active_driver.subscribe(() => (this.results = ''))
+            this._build.active_driver.subscribe(() => (this.results = '')),
         );
     }
 
@@ -112,9 +128,9 @@ export class WorkbenchOutputComponent extends BaseClass implements OnInit {
             () =>
                 this._body_el.nativeElement.scrollTo(
                     0,
-                    this._body_el.nativeElement.scrollHeight
+                    this._body_el.nativeElement.scrollHeight,
                 ),
-            10
+            10,
         );
         return details;
     }

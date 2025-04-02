@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { BehaviorSubject, combineLatest } from 'rxjs';
+import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { SpecBuildService } from '../services/build.service';
@@ -7,115 +7,115 @@ import { SpecBuildService } from '../services/build.service';
 @Component({
     selector: 'sidebar',
     template: `
-        <mat-form-field appearance="outline" class="m-2">
-            <mat-select [ngModel]="repo" (ngModelChange)="setRepo($event)">
-                <mat-option *ngFor="let repo of repos | async" [value]="repo">
-                    {{ repo }}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="mb-2 mx-2">
-            <i matPrefix class="material-icons">search</i>
-            <input
-                matInput
-                [(ngModel)]="search_str"
-                (ngModelChange)="setFilter($event)"
-                placeholder="Filter drivers..."
-            />
-        </mat-form-field>
-        <div class="overflow-y-auto flex-1 border-t border-gray-300">
-            <ng-container *ngIf="(drivers | async)?.length; else empty_state">
-                <a
-                    *ngFor="let driver of drivers | async"
-                    mat-button
-                    class="w-full border-gray-200"
-                    [routerLink]="['/' + repo, driver]"
-                    routerLinkActive="active"
-                    (click)="setDriver(driver)"
-                    [title]="driver"
+        <div class="bg-base-100 flex h-full max-w-[20rem] flex-col">
+            <mat-form-field
+                appearance="outline"
+                class="no-subscript m-2 w-[calc(100%-1rem)]"
+            >
+                <mat-select
+                    [ngModel]="repo"
+                    (ngModelChange)="setRepo($event)"
+                    [placeholder]="'REPO_LIST_EMPTY' | translate"
                 >
-                    <div class="flex items-center my-2">
+                    <mat-option
+                        *ngFor="let repo of repos | async"
+                        [value]="repo"
+                    >
+                        {{ repo }}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+            <mat-form-field
+                appearance="outline"
+                class="no-subscript mx-2 mb-2 w-[calc(100%-1rem)]"
+            >
+                <icon class="relative left-1 text-2xl" matPrefix>search</icon>
+                <input
+                    matInput
+                    [(ngModel)]="search_str"
+                    (ngModelChange)="setFilter($event)"
+                    [placeholder]="'FILTER' | translate"
+                />
+            </mat-form-field>
+            <div
+                class="divide-base-300 border-base-300 h-1/2 flex-1 divide-y overflow-auto border-t"
+            >
+                @let driver_list = drivers | async;
+                <ng-container *ngIf="driver_list?.length; else empty_state">
+                    <div
+                        class="bg-base-100 sticky top-0 z-10 w-full px-4 py-2 text-right text-sm font-thin"
+                    >
+                        {{
+                            'DRIVER_COUNT'
+                                | translate: { count: driver_list.length }
+                        }}
+                    </div>
+                    <a
+                        *ngFor="let driver of driver_list"
+                        matRipple
+                        class="hover:bg-base-200 relative flex w-full items-center p-2 text-left"
+                        [routerLink]="['/' + repo, driver]"
+                        routerLinkActive="active"
+                        (click)="setDriver(driver)"
+                        [title]="driver"
+                    >
+                        @let status = (statues | async)?.[repo + '|' + driver];
                         <div
                             name="dot"
-                            [class]="
-                                'mr-4 h-2 w-2 rounded-full border border-white ' +
-                                ((statues | async)[repo + '|' + driver]
-                                    ? (statues | async)[repo + '|' + driver]
-                                    : '')
-                            "
+                            [class.bg-warn]="!status"
+                            [class.bg-success]="status === 'passed'"
+                            [class.bg-error]="status === 'failed'"
+                            class="mr-4 h-2 w-2 rounded-full shadow"
                         ></div>
                         <div
-                            class="truncate flex-1 w-1/2 "
+                            class="w-1/2 flex-1 truncate font-mono"
                             [innerHTML]="driver | driverFormat"
                         ></div>
+                        <div
+                            active
+                            class="bg-primary absolute inset-y-1 right-0 hidden w-2 rounded-l-lg"
+                        ></div>
+                    </a>
+                    <div
+                        class="bg-base-200 m-2 w-[calc(100%-1rem)] rounded p-2 text-center opacity-60"
+                    >
+                        {{ 'DRIVER_LIST_END' | translate }}
                     </div>
-                </a>
-            </ng-container>
+                </ng-container>
+            </div>
         </div>
         <ng-template #empty_state>
-            <p class="p-2 w-full text-center">No Drivers</p>
+            <p class="w-full p-8 text-center opacity-30">
+                {{ 'LIST_EMPTY' | translate }}
+            </p>
         </ng-template>
     `,
     styles: [
         `
             :host {
-                display: flex;
-                flex-direction: column;
-                max-width: 20rem;
+                height: 100%;
             }
-
-            mat-form-field {
-                height: 3.5rem;
-            }
-
-            p {
-                margin: 1rem 0;
-            }
-
-            [name='dot'] {
-                background-color: #ffb300;
-            }
-
-            [name='dot'].failed {
-                background-color: #d50000;
-            }
-
-            [name='dot'].passed {
-                background-color: #43a047;
-            }
-
-            a {
-                border-bottom: 1px solid #edf2f7;
-                border-radius: 0;
-            }
-
-            a.active {
-                background-color: #c92366;
-                color: #fff;
+            a.active [active] {
+                display: block !important;
             }
         `,
     ],
+    standalone: false,
 })
 export class SidebarComponent {
     private _search_filter = new BehaviorSubject<string>('');
 
-    public readonly repos = this._build.repositories;
-    public readonly drivers = combineLatest([
-        this._build.driver_list,
-        this._search_filter,
-    ]).pipe(
-        map((details) => {
-            const [drivers, filter] = details;
-            return drivers.filter((d) =>
-                d.toLowerCase().includes(filter.toLowerCase())
-            );
-        })
-    );
-    public readonly statues = this._build.test_statuses;
+    public get repos() {
+        return this._build.repositories;
+    }
+    public drivers: Observable<any[]>;
+    public get statues() {
+        return this._build.test_statuses;
+    }
 
-    public readonly setRepo = (id) => this._build.setRepository(id);
-    public readonly setDriver = (id) => this._build.setDriver(id);
-    public readonly setFilter = (s) => this._search_filter.next(s);
+    public readonly setRepo = (id: string) => this._build.setRepository(id);
+    public readonly setDriver = (id: string) => this._build.setDriver(id);
+    public readonly setFilter = (s: string) => this._search_filter.next(s);
 
     public search_str = '';
 
@@ -124,4 +124,20 @@ export class SidebarComponent {
     }
 
     constructor(private _build: SpecBuildService) {}
+
+    public ngOnInit() {
+        this.drivers = combineLatest([
+            this._build.driver_list,
+            this._search_filter,
+        ]).pipe(
+            map((details: any) => {
+                const [drivers, filter] = details;
+                return drivers
+                    .filter((d: string) =>
+                        d.toLowerCase().includes(filter.toLowerCase()),
+                    )
+                    .sort((a: string, b: string) => a.localeCompare(b));
+            }),
+        );
+    }
 }

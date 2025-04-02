@@ -9,11 +9,16 @@ import { SpecBuildService } from './services/build.service';
 @Component({
     selector: 'app-root',
     template: `
-        <div class="absolute inset-0 overflow-hidden flex flex-col">
+        <div
+            class="bg-base-200 text-base-content absolute inset-0 flex flex-col overflow-hidden"
+        >
             <topbar-header class="z-20"></topbar-header>
-            <div class="flex flex-1 w-full" style="height: 50%">
-                <sidebar class="h-full shadow z-10 overflow-hidden" [class.show]="show_sidebar | async"></sidebar>
-                <div name="content" class="h-full flex-1 w-1/2 bg-gray-200 z-0">
+            <div class="flex w-full flex-1" style="height: 50%">
+                <sidebar
+                    class="z-10 h-full overflow-hidden shadow"
+                    [class.show]="show_sidebar | async"
+                ></sidebar>
+                <div name="content" class="bg-base-200 z-0 h-full w-1/2 flex-1">
                     <router-outlet></router-outlet>
                 </div>
             </div>
@@ -21,15 +26,22 @@ import { SpecBuildService } from './services/build.service';
     `,
     styleUrls: [
         '../styles/application.styles.css',
-        '../styles/custom-element.styles.scss',
+        '../styles/custom-element.styles.css',
         '../styles/native-element.styles.css',
     ],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 export class AppComponent implements OnInit {
-    public readonly show_sidebar = this._build.sidebar;
+    public get show_sidebar() {
+        return this._build.sidebar;
+    }
 
-    constructor(private _snackbar: MatSnackBar, private _cache: SwUpdate, private _build: SpecBuildService) {}
+    constructor(
+        private _snackbar: MatSnackBar,
+        private _cache: SwUpdate,
+        private _build: SpecBuildService,
+    ) {}
 
     public ngOnInit(): void {
         setNotifyOutlet(this._snackbar);
