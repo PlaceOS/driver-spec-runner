@@ -1,4 +1,4 @@
-ARG NODE_VERSION=14
+ARG NODE_VERSION=22
 
 # always use x86 for this stage
 FROM --platform=linux/amd64 node:${NODE_VERSION}-alpine AS frontend-build
@@ -15,7 +15,7 @@ RUN npm clean-install
 COPY frontend /frontend
 
 # Build the frontend
-RUN npx ng build --prod
+RUN npx ng build --configuration production
 
 ###########################
 
@@ -25,7 +25,7 @@ WORKDIR /app
 # Install the latest version of
 # - [GDB debugger](https://sourceware.org/gdb/current/onlinedocs/gdb/)
 # - ping (via iputils)
-RUN apk add --update --no-cache gdb 
+RUN apk add --update --no-cache gdb
 RUN mkdir -p /app/bin/drivers
 
 COPY ./shard.yml /app/shard.yml
@@ -35,7 +35,7 @@ COPY ./shard.lock /app/shard.lock
 RUN shards install --production --ignore-crystal-version
 
 COPY ./src /app/src
-COPY --from=frontend-build /frontend/dist/driver-spec-runner /app/www
+COPY --from=frontend-build /frontend/dist/spec-runner-ui/browser /app/www
 
 ENV PATH="$PATH:/app/bin"
 
