@@ -1,7 +1,7 @@
 ARG NODE_VERSION=14
 
 # always use x86 for this stage
-FROM --platform=linux/amd64 node:${NODE_VERSION}-alpine as frontend-build
+FROM --platform=linux/amd64 node:${NODE_VERSION}-alpine AS frontend-build
 
 WORKDIR /frontend
 COPY /frontend/package*.json  /frontend
@@ -19,7 +19,7 @@ RUN npx ng build --prod
 
 ###########################
 
-FROM placeos/crystal:latest as build
+FROM placeos/crystal:latest AS build
 WORKDIR /app
 
 # Install the latest version of
