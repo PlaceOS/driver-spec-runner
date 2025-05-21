@@ -25,6 +25,25 @@ ActionController::Server.before(
   ActionController::LogHandler.new(filters, ActionController::LogHandler::Event.all),
 )
 
+class IndexFallbackHandler
+  include HTTP::Handler
+
+  def initialize(@fallback_file : String, public_dir : String)
+    @file_handler = HTTP::StaticFileHandler.new(public_dir, directory_listing: false)
+  end
+
+  def call(context) : Nil
+    unless context.request.method.in?("GET", "HEAD")
+      call_next(context)
+      return
+    end
+
+    context.request.path = @fallback_file
+
+    @file_handler.call(context)
+  end
+end
+
 # Optional support for serving of static assests
 static_file_path = ENV["PUBLIC_WWW_PATH"]? || "./www"
 if File.directory?(static_file_path)
@@ -34,6 +53,10 @@ if File.directory?(static_file_path)
   # Check for files if no paths matched in your application
   ActionController::Server.before(
     ::HTTP::StaticFileHandler.new(static_file_path, directory_listing: false)
+  )
+
+  ActionController::Server.after(
+    IndexFallbackHandler.new("/index.html", static_file_path)
   )
 end
 
