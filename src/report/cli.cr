@@ -134,9 +134,9 @@ module PlaceOS::Drivers
       end
 
       if response
-        if response.success?
+        if response.success? && !response.body.includes?("spec failed")
           unit.task.done(green "passed")
-          puts "\n#{response.body}\n" if Settings.output_errors?
+          # puts "\n#{response.body}\n" if Settings.output_errors?
         else
           spawn { log_compilation_failure(unit, response.body) }
           unit.task.fail(red "failed")
