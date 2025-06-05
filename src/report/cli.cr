@@ -102,6 +102,7 @@ module PlaceOS::Drivers
         else
           spawn { log_compilation_failure(unit, response.body) }
           unit.task.fail(red "failed to compile!")
+          puts "\n#{response.body}\n" if Settings.output_errors?
           state_channel.send Datum.no_compile(unit.driver)
         end
       end

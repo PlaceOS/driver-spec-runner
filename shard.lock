@@ -231,7 +231,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.65.1
+    version: 9.65.2
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -295,7 +295,7 @@ shards:
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.7.1
+    version: 1.7.2
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
