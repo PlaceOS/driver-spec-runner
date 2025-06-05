@@ -136,6 +136,7 @@ module PlaceOS::Drivers
       if response
         if response.success?
           unit.task.done(green "passed")
+          puts "\n#{response.body}\n" if Settings.output_errors?
         else
           spawn { log_compilation_failure(unit, response.body) }
           unit.task.fail(red "failed")
