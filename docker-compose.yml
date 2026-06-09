@@ -52,6 +52,9 @@ services:
       PLACEOS_BUILD_LOCAL: "true"
       PLACEOS_ENABLE_TRACE: "true"
       BUILD_SERVICE_DISABLED: "true"
+      # driver specs launch every driver against a mock raw TCP server, so all
+      # transports need to be compiled into driver binaries built for testing
+      PLACEOS_ALL_TRANSPORTS: "1"
 
   redis:
     image: eqalpha/keydb
