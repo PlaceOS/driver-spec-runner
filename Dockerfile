@@ -1,4 +1,4 @@
-ARG NODE_VERSION=22
+ARG NODE_VERSION=24
 
 # always use x86 for this stage
 FROM --platform=linux/amd64 node:${NODE_VERSION}-alpine AS frontend-build

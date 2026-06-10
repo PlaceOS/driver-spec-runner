@@ -47,54 +47,57 @@ import { TranslatePipe } from './translate.pipe';
                 class="divide-base-300 border-base-300 h-1/2 flex-1 divide-y overflow-auto border-t"
             >
                 @let driver_list = drivers();
-                @if (driver_list?.length) {
-                    <div
-                        class="bg-base-100 sticky top-0 z-10 w-full px-4 py-2 text-right text-sm font-thin"
+                <div
+                    class="bg-base-200 border-base-300 sticky top-2 z-10 m-2 w-[calc(100%-1rem)] rounded-lg border! px-4 py-2 text-right text-sm font-thin shadow"
+                >
+                    {{
+                        'DRIVER_COUNT'
+                            | translate
+                                : { count: driver_list.length }
+                                : driver_list.length
+                    }}
+                </div>
+                @for (driver of driver_list; track driver) {
+                    <a
+                        matRipple
+                        class="hover:bg-base-200 relative flex w-full items-center p-2 text-left"
+                        [routerLink]="['/', repo, driver]"
+                        routerLinkActive="active"
+                        (click)="setDriver(driver)"
+                        [title]="driver"
                     >
-                        {{
-                            'DRIVER_COUNT'
-                                | translate: { count: driver_list.length }
-                        }}
+                        @let status = statues()[repo + '|' + driver];
+
+                        <div
+                            name="dot"
+                            [class.bg-warn]="!status"
+                            [class.bg-success]="status === 'passed'"
+                            [class.bg-error]="status === 'failed'"
+                            class="mr-4 h-2 w-2 rounded-full shadow"
+                        ></div>
+                        <div
+                            class="w-1/2 flex-1 truncate font-mono"
+                            [innerHTML]="driver | driverFormat"
+                        ></div>
+                        <div
+                            active
+                            class="bg-primary absolute inset-y-1 right-0 hidden w-2 rounded-l-lg"
+                        ></div>
+                    </a>
+                } @empty {
+                    <div
+                        class="bg-base-300 m-2 flex h-64 w-[calc(100%-1rem)] flex-col items-center justify-center gap-2 rounded-xl p-8 opacity-30"
+                    >
+                        <icon class="text-5xl">flash_off</icon>
+                        <p>{{ 'LIST_EMPTY' | translate }}</p>
                     </div>
-                    @for (driver of driver_list; track driver) {
-                        <a
-                            matRipple
-                            class="hover:bg-base-200 relative flex w-full items-center p-2 text-left"
-                            [routerLink]="['/' + repo, driver]"
-                            routerLinkActive="active"
-                            (click)="setDriver(driver)"
-                            [title]="driver"
-                        >
-                            @let status =
-                                $safeNavigationMigration(
-                                    statues()[repo + '|' + driver]
-                                );
-                            <div
-                                name="dot"
-                                [class.bg-warn]="!status"
-                                [class.bg-success]="status === 'passed'"
-                                [class.bg-error]="status === 'failed'"
-                                class="mr-4 h-2 w-2 rounded-full shadow"
-                            ></div>
-                            <div
-                                class="w-1/2 flex-1 truncate font-mono"
-                                [innerHTML]="driver | driverFormat"
-                            ></div>
-                            <div
-                                active
-                                class="bg-primary absolute inset-y-1 right-0 hidden w-2 rounded-l-lg"
-                            ></div>
-                        </a>
-                    }
+                }
+                @if (driver_list.length) {
                     <div
                         class="bg-base-200 m-2 w-[calc(100%-1rem)] rounded p-2 text-center opacity-60"
                     >
                         {{ 'DRIVER_LIST_END' | translate }}
                     </div>
-                } @else {
-                    <p class="w-full p-8 text-center opacity-30">
-                        {{ 'LIST_EMPTY' | translate }}
-                    </p>
                 }
             </div>
         </div>
@@ -154,5 +157,4 @@ export class SidebarComponent {
     public get repo() {
         return this._build.getRepository();
     }
-
 }

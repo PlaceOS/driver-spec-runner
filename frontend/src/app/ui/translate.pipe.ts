@@ -1,12 +1,18 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
-
 import { LocaleService } from '../services/locale.service';
 
-@Pipe({ name: 'translate' })
+@Pipe({
+    name: 'translate',
+    pure: false,
+})
 export class TranslatePipe implements PipeTransform {
     private _locale = inject(LocaleService);
 
-    public transform(value: string, args: Record<string, any> = {}) {
-        return this._locale.get(value, args);
+    public transform(
+        value: string,
+        args: Record<string, any> = {},
+        plural?: number,
+    ) {
+        return this._locale.get(value, args, plural) || value;
     }
 }

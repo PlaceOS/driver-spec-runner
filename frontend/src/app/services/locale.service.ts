@@ -1,7 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 
 import * as DEFAULT_LOCALE from 'public/assets/locales/en-AU.json';
-
 import { log } from '../common/general';
 
 let _service: LocaleService;
@@ -10,9 +9,13 @@ export function setTranslationService(service: LocaleService) {
     _service = service;
 }
 
-export function i18n(key: string, args: Record<string, any> = {}) {
+export function i18nAvailable() {
+    return !!_service;
+}
+
+export function i18n(key: string, args: Record<string, any> = {}, plural = 0) {
     if (!_service) return key;
-    return _service.get(key, args);
+    return _service.get(key, args, plural);
 }
 
 declare global {
@@ -59,7 +62,7 @@ function removeLocalStorageKeysWithSubstring(substring: string): void {
     }
 }
 
-const STORE_KEY = 'PlaceOS.locale';
+const STORE_KEY = 'APP.locale';
 
 @Injectable({
     providedIn: 'root',
@@ -70,13 +73,15 @@ export class LocaleService {
     private _current_locale_short = this._current_locale.split('-')[0];
     private _cache_time = 7 * 24 * 60 * 60 * 1000;
     private _load_promises: Record<string, Promise<void>> = {};
+    private readonly _changes = signal(0);
 
     private _default_mappings: Record<string, string> =
         removeNesting(DEFAULT_LOCALE);
     private _locale_mappings: Record<string, Record<string, string>> = {};
 
-    public locale_folder = 'assets/locales';
+    public locale_folder = 'assets/locale';
     public zone_id: string;
+    public readonly changes = this._changes.asReadonly();
 
     constructor() {
         this._current_locale =
@@ -105,12 +110,38 @@ export class LocaleService {
         }
     }
 
-    public get(key: string, args: Record<string, any> = {}) {
-        let value =
-            (this._locale_mappings[this._current_locale] || {})[key] ||
-            (this._locale_mappings[this._current_locale_short] || {})[key] ||
-            this._default_mappings[key] ||
-            key;
+    public get(key: string, args: Record<string, any> = {}, plural = 0) {
+        this.changes();
+        let key_value = key;
+        let value = key;
+        const map = this._locale_mappings[this._current_locale] || {};
+        const map_short =
+            this._locale_mappings[this._current_locale_short] || {};
+        const map_default = this._default_mappings || {};
+        if (plural) {
+            key_value = `${key}_${plural}`;
+            const any_key_value = `${key}_N`;
+            value =
+                // Check for exact plural
+                map[key_value] ||
+                map_short[key_value] ||
+                map_default[key_value] ||
+                // Check for catch-all plural
+                map[any_key_value] ||
+                map_short[any_key_value] ||
+                map_default[any_key_value] ||
+                // Check for key
+                map[key] ||
+                map_short[key] ||
+                map_default[key] ||
+                key;
+        } else {
+            value =
+                map[key_value] ||
+                map_short[key_value] ||
+                map_default[key_value] ||
+                key;
+        }
         for (const id in args) {
             value = value
                 .replace(`{{ ${id} }}`, args[id])
@@ -134,6 +165,7 @@ export class LocaleService {
     public setLocale(locale: string) {
         this._current_locale = locale;
         this._current_locale_short = this._current_locale.split('-')[0];
+        this._changes.update((value) => value + 1);
         if (!this._locale_mappings[locale] && !this._load_promises[locale]) {
             this._load_promises[locale] = this._loadLocale(locale);
         }
@@ -156,13 +188,9 @@ export class LocaleService {
                 );
             }
             const locale_data = await resp.json();
-            const locale_override_data = { details: {} };
-            // this.zone_id
-            //     ? await showMetadata(
-            //           this.zone_id,
-            //           `locale_${locale}`,
-            //       ).toPromise()
-            //     : { details: {} };
+            const locale_override_data = this.zone_id
+                ? { details: {} }
+                : { details: {} };
             const base_locale_values = removeNesting(locale_data);
             const override_locale_values = removeNesting(
                 locale_override_data.details,
@@ -185,6 +213,7 @@ export class LocaleService {
         } else {
             this._locale_mappings[locale] = existing.mappings;
         }
+        this._changes.update((value) => value + 1);
         delete this._load_promises[locale];
     }
 }
