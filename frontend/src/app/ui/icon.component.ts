@@ -1,21 +1,26 @@
-import { Component, Input } from '@angular/core';
+import {
+    Component,
+    input,
+} from '@angular/core';
+import { SafePipe } from './safe.pipe';
 
 @Component({
     selector: 'app-icon,icon',
     template: `
         <div class="flex h-[1.25em] w-[1.25em] items-center justify-center">
-            <i
-                *ngIf="!icon || icon.type !== 'img'"
-                [class]="icon?.class || className"
-            >
-                {{ icon?.content }}
-                <ng-content></ng-content>
-            </i>
-            <img
-                class="h-[1em] w-[1em]"
-                *ngIf="icon && icon.type === 'img'"
-                [src]="icon.src | safe: 'resource'"
-            />
+            @let iconValue = icon();
+            @if (!iconValue || iconValue.type !== 'img') {
+                <i [class]="iconValue?.class || className()">
+                    {{ iconValue?.content }}
+                    <ng-content />
+                </i>
+            }
+            @if (iconValue && iconValue.type === 'img') {
+                <img
+                    class="h-[1em] w-[1em]"
+                    [src]="iconValue.src | safe: 'resource'"
+                />
+            }
         </div>
     `,
     styles: [
@@ -25,15 +30,15 @@ import { Component, Input } from '@angular/core';
             }
         `,
     ],
-    standalone: false,
+    imports: [SafePipe],
 })
 export class IconComponent {
-    @Input() public className: string = 'material-icons';
+    public readonly className = input<string>('material-icons');
     /** Icon details */
-    @Input() public icon: {
+    public readonly icon = input<{
         class: string;
         src: string;
         type: 'img' | 'icon';
         content: string;
-    };
+    }>();
 }

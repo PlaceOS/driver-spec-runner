@@ -36,7 +36,13 @@ export function notify(
     });
     if (action) {
         on_action = on_action || (() => snackbar_ref.dismiss());
-        snackbar_ref.onAction().subscribe(() => on_action!());
+        requestAnimationFrame(() => {
+            const container = document.querySelector('mat-snack-bar-container');
+            const button = container?.querySelector('button');
+            button?.addEventListener('click', () => on_action!(), {
+                once: true,
+            });
+        });
     }
 }
 

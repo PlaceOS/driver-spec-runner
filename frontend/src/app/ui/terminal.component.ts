@@ -1,12 +1,12 @@
 import {
     Component,
     ElementRef,
-    Input,
     OnChanges,
     OnDestroy,
     OnInit,
     SimpleChanges,
-    ViewChild,
+    input,
+    viewChild,
 } from '@angular/core';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
@@ -26,24 +26,23 @@ import { AsyncHandler } from '../common/async-handler.class';
         </div>
     `,
     styles: [``],
-    standalone: false,
 })
 export class TerminalComponent
     extends AsyncHandler
     implements OnInit, OnChanges, OnDestroy
 {
     /** Contents to display on the terminal */
-    @Input() public content: string = '';
+    public readonly content = input<string>('');
     /** Resizes terminal display on change */
-    @Input() public resize: boolean = false;
+    public readonly resize = input<boolean>(false);
     /** Local instance of an xterm terminal */
     public terminal: Terminal;
     public fit_addon: FitAddon;
 
-    @ViewChild('terminal', { static: true })
-    public terminal_element: ElementRef<HTMLDivElement>;
-    @ViewChild('container', { static: true })
-    public container_el: ElementRef<HTMLDivElement>;
+    public readonly terminal_element =
+        viewChild.required<ElementRef<HTMLDivElement>>('terminal');
+    public readonly container_el =
+        viewChild.required<ElementRef<HTMLDivElement>>('container');
 
     public ngOnInit(): void {
         if (this.terminal) this.ngOnDestroy();
@@ -59,17 +58,17 @@ export class TerminalComponent
             scrollback: 50000,
         });
         this.fit_addon = new FitAddon();
-        this.terminal.open(this.terminal_element.nativeElement);
+        this.terminal.open(this.terminal_element().nativeElement);
         this.terminal.loadAddon(this.fit_addon);
         this.timeout('init', () => {
             this.resizeTerminal();
-            this.updateTerminalContents(this.content || '');
+            this.updateTerminalContents(this.content() || '');
         });
     }
 
     public ngOnChanges(changes: SimpleChanges): void {
         if (changes.content) {
-            this.updateTerminalContents(this.content || '');
+            this.updateTerminalContents(this.content() || '');
         }
         if (changes.resize) {
             this.timeout('resize', () => this.resizeTerminal());
@@ -77,6 +76,7 @@ export class TerminalComponent
     }
 
     public ngOnDestroy(): void {
+        if (!this.terminal) return;
         this.terminal.clear();
         this.terminal.dispose();
     }
@@ -85,7 +85,7 @@ export class TerminalComponent
      * Resize the terminal display to fill the container element
      */
     public resizeTerminal(): void {
-        if (!this.fit_addon || !this.container_el) return;
+        if (!this.fit_addon || !this.container_el()) return;
         this.fit_addon.fit();
     }
 

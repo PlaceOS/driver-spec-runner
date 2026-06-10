@@ -1,5 +1,17 @@
-import { Component, forwardRef, Input } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import {
+    Component,
+    forwardRef,
+    input,
+    signal,
+} from '@angular/core';
+import {
+    ControlValueAccessor,
+    FormsModule,
+    NG_VALUE_ACCESSOR,
+} from '@angular/forms';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatTooltip } from '@angular/material/tooltip';
+import { IconComponent } from './icon.component';
 
 @Component({
     selector: 'settings-toggle',
@@ -7,22 +19,24 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
         <button
             matRipple
             class="hover:bg-base-200 relative flex flex-1 items-center space-x-2 overflow-hidden rounded border py-1 pr-1 pl-2"
-            [class.border-base-300]="!value"
-            [class.border-info]="value"
-            (click)="setValue(!value)"
+            [class.border-base-300]="!value()"
+            [class.border-info]="value()"
+            (click)="setValue(!value())"
         >
-            <div
-                class="bg-info absolute inset-0 opacity-10"
-                *ngIf="value"
-            ></div>
+            @if (value()) {
+                <div class="bg-info absolute inset-0 opacity-10"></div>
+            }
             <div class="ml-2 flex flex-1 items-center space-x-2 text-left">
-                <div>{{ name }}</div>
-                <icon *ngIf="info" [matTooltip]="info">info</icon>
+                <div>{{ name() }}</div>
+                @if (info()) {
+                    <icon [matTooltip]="info()">info</icon>
+                }
             </div>
             <mat-checkbox
-                [(ngModel)]="value"
+                [ngModel]="value()"
+                (ngModelChange)="setValue($event)"
                 class="pointer-events-none"
-            ></mat-checkbox>
+            />
         </button>
     `,
     styles: [
@@ -39,13 +53,13 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
             multi: true,
         },
     ],
-    standalone: false,
+    imports: [IconComponent, MatTooltip, MatCheckbox, FormsModule],
 })
 export class SettingsToggleComponent implements ControlValueAccessor {
-    @Input() public name: string;
-    @Input() public info: string;
+    public readonly name = input<string>(undefined);
+    public readonly info = input<string>();
 
-    public value: boolean;
+    public readonly value = signal(false);
 
     /** Form control on change handler */
     private _onChange: (_: boolean) => void;
@@ -60,7 +74,7 @@ export class SettingsToggleComponent implements ControlValueAccessor {
      * @param new_value New value to set on the form field
      */
     public setValue(new_value: boolean): void {
-        this.value = new_value;
+        this.value.set(new_value);
         /* istanbul ignore else */
         if (this._onChange) this._onChange(new_value);
     }
@@ -71,6 +85,6 @@ export class SettingsToggleComponent implements ControlValueAccessor {
      * @param value The new value for the component
      */
     public writeValue(value: boolean) {
-        this.value = value;
+        this.value.set(value);
     }
 }

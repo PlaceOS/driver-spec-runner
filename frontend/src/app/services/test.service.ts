@@ -1,10 +1,4 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
-import { catchError, filter, shareReplay, switchMap } from 'rxjs/operators';
-
-import { webSocket } from 'rxjs/webSocket';
-
-import { stringSimilarity } from 'string-similarity-js';
+import { effect, inject, Injectable, signal } from '@angular/core';
 
 import { apiEndpoint, toQueryString } from '../common/api';
 import { get, post } from '../common/http';
@@ -53,66 +47,58 @@ export interface TestResponse {
     providedIn: 'root',
 })
 export class SpecTestService {
+    private _build = inject(SpecBuildService);
+
     /** Currently active repository */
-    private _active_spec = new BehaviorSubject<string>('');
+    private _active_spec = signal('');
     /** Currently active repository */
-    private _active_commit = new BehaviorSubject<RepositoryCommit | null>(null);
+    private _active_commit = signal<RepositoryCommit | null>(null);
     /** Currently active repository */
-    private _settings = new BehaviorSubject<TestSettings>({});
+    private _settings = signal<TestSettings>({});
+    /** Currently available spec files */
+    private _spec_list = signal<string[]>([]);
+    /** Currently available spec commits */
+    private _commit_list = signal<RepositoryCommit[]>([]);
 
-    public readonly active_spec = this._active_spec.asObservable();
+    private _spec_list_request = 0;
+    private _commit_list_request = 0;
 
-    public readonly active_commit = this._active_commit.asObservable();
+    public readonly active_spec = this._active_spec.asReadonly();
 
-    public readonly settings = this._settings.asObservable();
+    public readonly active_commit = this._active_commit.asReadonly();
 
-    public get spec_list() {
-        return this._build.active_repo.pipe(
-            switchMap((repo: string) =>
-                this.loadSpecFiles({
-                    repository: repo === 'Public' ? '' : repo,
-                }),
-            ),
-            shareReplay(),
-        );
-    }
+    public readonly settings = this._settings.asReadonly();
 
-    public readonly commit_list = this._active_spec.pipe(
-        filter((i) => !!i),
-        switchMap((i) =>
-            this.loadSpecCommits(i, {
-                repository: i === 'Public' ? undefined : i,
-            }),
-        ),
-        shareReplay(),
-    );
+    public readonly spec_list = this._spec_list.asReadonly();
 
-    constructor(private _build: SpecBuildService) {
-        combineLatest([this._build.active_driver, this.spec_list]).subscribe(
-            async (details: any) => {
-                const [driver, list] = details;
-                const comp = list.map((spec: string) => ({
-                    spec,
-                    similarity: stringSimilarity(spec, driver),
-                }));
-                comp.sort((a: any, b: any) => b.similarity - a.similarity);
-                this._active_spec.next(
-                    comp[0].similarity > 0.7 ? comp[0].spec : '',
-                );
-            },
-        );
+    public readonly commit_list = this._commit_list.asReadonly();
+
+    constructor() {
+        effect(() => {
+            const repo = this._build.active_repo();
+            this.reloadSpecFiles(repo);
+        });
+        effect(() => {
+            const driver = this._build.active_driver();
+            const list = this._spec_list();
+            this.selectClosestSpec(driver, list);
+        });
+        effect(() => {
+            const spec = this._active_spec();
+            this.reloadSpecCommits(spec);
+        });
     }
 
     public setSpec(spec: string): void {
-        this._active_spec.next(spec);
+        this._active_spec.set(spec);
     }
 
     public setCommit(commit: RepositoryCommit): void {
-        this._active_commit.next(commit);
+        this._active_commit.set(commit);
     }
 
     public setSettings(options: TestSettings): void {
-        this._settings.next({ ...this._settings.getValue(), ...options });
+        this._settings.update((current) => ({ ...current, ...options }));
     }
 
     public async loadSpecFiles(
@@ -129,7 +115,7 @@ export class SpecTestService {
     ): Promise<RepositoryCommit[]> {
         const url = `${apiEndpoint()}/test/${encodeURIComponent(id)}/commits`;
         const list = await get(url);
-        this._active_commit.next(LATEST_COMMIT);
+        this._active_commit.set(LATEST_COMMIT);
         return [LATEST_COMMIT, ...list];
     }
 
@@ -144,19 +130,29 @@ export class SpecTestService {
 
     public runSpecWithFeedback(
         options: RunTestOptions = {},
-    ): Observable<string> {
+        onMessage: (message: string) => void,
+        onComplete: () => void,
+    ): () => void {
         options = this._generateRunOptions(options);
         const query = toQueryString(options);
         const secure = location.protocol.includes('https');
         const url = `ws${secure ? 's' : ''}://${location.host}/test/run_spec${
             query ? '?' + query : ''
         }`;
-        return webSocket<string>({
-            url,
-            deserializer: ({ data }) => this._parseResponse(data),
-        })
-            .asObservable()
-            .pipe(catchError((_) => of('')));
+        const socket = new WebSocket(url);
+        socket.addEventListener('message', ({ data }) =>
+            onMessage(this._parseResponse(data)),
+        );
+        socket.addEventListener('error', () => onMessage(''));
+        socket.addEventListener('close', () => onComplete());
+        return () => {
+            if (
+                socket.readyState === WebSocket.OPEN ||
+                socket.readyState === WebSocket.CONNECTING
+            ) {
+                socket.close();
+            }
+        };
     }
 
     private _generateRunOptions(options: RunTestOptions = {}) {
@@ -164,12 +160,11 @@ export class SpecTestService {
         return {
             repository: repo === 'Public' ? undefined : repo,
             driver: this._build.getDriver() || options.driver,
-            spec: this._active_spec.getValue() || options.spec,
+            spec: this._active_spec() || options.spec,
             commit: this._build.getCommit()?.commit || options.commit,
-            spec_commit:
-                this._active_commit.getValue()?.commit || options.spec_commit,
-            force: this._settings.getValue().force || options.force,
-            debug: this._settings.getValue().debug_symbols || options.debug,
+            spec_commit: this._active_commit()?.commit || options.spec_commit,
+            force: this._settings().force || options.force,
+            debug: this._settings().debug_symbols || options.debug,
         };
     }
 
@@ -210,5 +205,76 @@ export class SpecTestService {
             typeof json === 'string' ? json : this._processMessage(json)
         }`;
         return value;
+    }
+
+    private async reloadSpecFiles(repo: string): Promise<void> {
+        const request = ++this._spec_list_request;
+        const list = await this.loadSpecFiles({
+            repository: repo === 'Public' ? '' : repo,
+        }).catch(() => []);
+        if (request === this._spec_list_request) this._spec_list.set(list);
+    }
+
+    private async reloadSpecCommits(spec: string): Promise<void> {
+        const request = ++this._commit_list_request;
+        const list = spec
+            ? await this.loadSpecCommits(spec, {
+                  repository: spec === 'Public' ? undefined : spec,
+              }).catch(() => [])
+            : [];
+        if (request === this._commit_list_request) this._commit_list.set(list);
+    }
+
+    private selectClosestSpec(driver: string, list: string[]): void {
+        if (!driver || !list.length) {
+            this._active_spec.set('');
+            return;
+        }
+        const comp = list.map((spec: string) => ({
+            spec,
+            similarity: this.stringSimilarity(spec, driver),
+        }));
+        comp.sort((a: any, b: any) => b.similarity - a.similarity);
+        this._active_spec.set(comp[0].similarity > 0.7 ? comp[0].spec : '');
+    }
+
+    private stringSimilarity(a: string, b: string): number {
+        const first = this.normaliseSimilarityInput(a);
+        const second = this.normaliseSimilarityInput(b);
+        if (first === second) return 1;
+        if (first.length < 2 || second.length < 2) return 0;
+
+        const firstPairs = this.wordLetterPairs(first);
+        const secondPairs = this.wordLetterPairs(second);
+        const pairCount = firstPairs.length + secondPairs.length;
+        let intersection = 0;
+
+        for (const pair of firstPairs) {
+            const index = secondPairs.indexOf(pair);
+            if (index >= 0) {
+                intersection++;
+                secondPairs.splice(index, 1);
+            }
+        }
+
+        return pairCount ? (2 * intersection) / pairCount : 0;
+    }
+
+    private wordLetterPairs(value: string): string[] {
+        const pairs: string[] = [];
+        for (const word of value.split(/\s+/)) {
+            for (let i = 0; i < word.length - 1; i++) {
+                pairs.push(word.slice(i, i + 2));
+            }
+        }
+        return pairs;
+    }
+
+    private normaliseSimilarityInput(value: string): string {
+        return value
+            .toLowerCase()
+            .replace(/[_./-]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 }

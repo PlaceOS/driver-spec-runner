@@ -1,22 +1,28 @@
-import { Component } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import {
+    Component,
+    effect,
+    inject,
+    input,
+} from '@angular/core';
 import { SpecBuildService } from './services/build.service';
+import { TranslatePipe } from './ui/translate.pipe';
+import { WorkbenchFormComponent } from './workbench-form.component';
+import { WorkbenchOutputComponent } from './workbench-output.component';
 
 @Component({
     selector: 'app-workbench',
     template: `
-        <ng-container *ngIf="driver; else empty_state">
-            <workbench-form class="w-full"></workbench-form>
-            <workbench-output class="h-0 w-full flex-1"></workbench-output>
-        </ng-container>
-        <ng-template #empty_state>
+        @if (driver()) {
+            <workbench-form class="w-full" />
+            <workbench-output class="h-0 w-full flex-1" />
+        } @else {
             <div
                 class="absolute inset-0 flex flex-col items-center justify-center"
             >
                 <i class="material-icons m-4">arrow_back</i>
                 <p>{{ 'DRIVER_SELECT' | translate }}</p>
             </div>
-        </ng-template>
+        }
     `,
     styles: [
         `
@@ -33,25 +39,19 @@ import { SpecBuildService } from './services/build.service';
             }
         `,
     ],
-    standalone: false,
+    imports: [WorkbenchFormComponent, WorkbenchOutputComponent, TranslatePipe],
 })
 export class WorkbenchComponent {
-    public driver: string = '';
+    private _build = inject(SpecBuildService);
 
-    constructor(
-        private _route: ActivatedRoute,
-        private _build: SpecBuildService,
-    ) {}
+    public readonly repo = input('');
+    public readonly driver = input('');
 
-    public ngOnInit(): void {
-        this._route.paramMap.subscribe((params) => {
-            if (params.has('repo')) {
-                this._build.setRepository(params.get('repo') || '');
-            }
-            if (params.has('driver')) {
-                this._build.setDriver(params.get('driver') || '');
-            }
-            this.driver = params.get('driver') || '';
+    constructor() {
+        effect(() => {
+            const repo = this.repo();
+            if (repo) this._build.setRepository(repo);
         });
+        effect(() => this._build.setDriver(this.driver()));
     }
 }

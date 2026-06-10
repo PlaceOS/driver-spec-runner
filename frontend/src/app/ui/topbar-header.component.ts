@@ -1,6 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { SpecBuildService } from '../services/build.service';
 import { LocaleService } from '../services/locale.service';
+import { IconComponent } from './icon.component';
+import { TranslatePipe } from './translate.pipe';
 
 @Component({
     selector: 'topbar-header',
@@ -15,7 +18,7 @@ import { LocaleService } from '../services/locale.service';
                 (click)="toggle()"
             >
                 <icon class="text-2xl">{{
-                    (show_sidebar | async) ? 'close' : 'menu'
+                    show_sidebar ? 'close' : 'menu'
                 }}</icon>
             </button>
             <a [routerLink]="['/']" class="h-full">
@@ -73,15 +76,21 @@ import { LocaleService } from '../services/locale.service';
             </mat-menu> -->
             <button icon matRipple (click)="toggleDarkMode()">
                 <icon class="text-2xl">{{
-                    dark_mode ? 'dark_mode' : 'light_mode'
+                    dark_mode() ? 'dark_mode' : 'light_mode'
                 }}</icon>
             </button>
         </div>
     `,
     styles: [``],
-    standalone: false,
+    imports: [IconComponent, RouterLink, TranslatePipe],
 })
 export class TopbarHeaderComponent {
+    private _build = inject(SpecBuildService);
+    private _locale = inject(LocaleService);
+    public readonly dark_mode = signal(
+        localStorage.getItem('PlaceOS.theme') === 'dark',
+    );
+
     public readonly setLocale = (code: string) => {
         console.log('Set Locale:', code);
         this._locale.setLocale(code);
@@ -159,7 +168,7 @@ export class TopbarHeaderComponent {
     }
 
     public get show_sidebar() {
-        return this._build.sidebar;
+        return this._build.sidebar();
     }
 
     public readonly toggle = () => this._build.toggleSidebar();
@@ -170,27 +179,20 @@ export class TopbarHeaderComponent {
             : 'assets/logo-dark.svg';
     }
 
-    public get dark_mode() {
-        return localStorage.getItem('PlaceOS.theme') === 'dark';
-    }
-
     public toggleDarkMode() {
-        if (this.dark_mode) {
-            localStorage.removeItem('PlaceOS.theme');
-            document.body.classList.remove('theme-dark');
-        } else {
+        const enabled = !this.dark_mode();
+        this.dark_mode.set(enabled);
+        if (enabled) {
             localStorage.setItem('PlaceOS.theme', 'dark');
             document.body.classList.add('theme-dark');
+        } else {
+            localStorage.removeItem('PlaceOS.theme');
+            document.body.classList.remove('theme-dark');
         }
     }
 
-    constructor(
-        private _build: SpecBuildService,
-        private _locale: LocaleService,
-    ) {}
-
     public ngOnInit() {
-        if (this.dark_mode) {
+        if (this.dark_mode()) {
             document.body.classList.add('theme-dark');
         } else {
             document.body.classList.remove('theme-dark');

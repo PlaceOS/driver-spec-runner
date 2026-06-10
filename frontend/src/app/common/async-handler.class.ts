@@ -1,5 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { Injectable, OnDestroy, signal } from '@angular/core';
 
 type VoidFn = () => void;
 
@@ -17,16 +16,16 @@ export class AsyncHandler implements OnDestroy {
     protected _intervals: { [name: string]: number } = {};
     /** Store for named subscription unsub callbacks */
     protected _subscriptions: {
-        [name: string]: Subscription | VoidFn;
+        [name: string]: VoidFn;
     } = {};
-    /** Subject which stores the initialised state of the object */
-    protected readonly _initialised = new BehaviorSubject<boolean>(false);
-    /** Observable of the initialised state of the object */
-    public readonly initialised = this._initialised.asObservable();
+    /** Signal which stores the initialised state of the object */
+    protected readonly _initialised = signal(false);
+    /** Signal of the initialised state of the object */
+    public readonly initialised = this._initialised.asReadonly();
 
     /** Whether the object has been initialised */
     public get is_initialised(): boolean {
-        return this._initialised.getValue();
+        return this._initialised();
     }
 
     public ngOnDestroy(): void {
@@ -113,16 +112,13 @@ export class AsyncHandler implements OnDestroy {
      * @param name Name of the subscription
      * @param unsub Unsubscribe callback or Subscription object
      */
-    protected subscription(name: string, unsub: Subscription | VoidFn) {
+    protected subscription(name: string, unsub: VoidFn) {
         this.unsub(name);
         this._subscriptions[name] = unsub;
     }
 
     protected hasSubscription(name: string) {
-        return (
-            this._subscriptions[name] instanceof Subscription ||
-            !!this._subscriptions[name]
-        );
+        return !!this._subscriptions[name];
     }
 
     /**
@@ -133,9 +129,7 @@ export class AsyncHandler implements OnDestroy {
         if (!(name in this._subscriptions) || !this._subscriptions[name]) {
             return;
         }
-        'unsubscribe' in this._subscriptions[name]
-            ? (this._subscriptions[name] as Subscription).unsubscribe()
-            : (this._subscriptions[name] as any)();
+        this._subscriptions[name]();
         delete this._subscriptions[name];
     }
 

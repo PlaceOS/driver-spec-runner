@@ -1,9 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
-@Pipe({
-    name: 'driverFormat',
-    standalone: false,
-})
+@Pipe({ name: 'driverFormat' })
 export class DriverFormatPipe implements PipeTransform {
     transform(format: string): string {
         if (format.indexOf('/') >= 0) {
