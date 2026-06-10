@@ -1,158 +1,158 @@
+@import 'tailwindcss';
+@config '../tailwind.config.js';
 
-@import "tailwindcss";
+:root {
+    --brand-100: hsl(336, 57%, 48%);
+    --brand-200: hsl(217, 91%, 60%);
+    --brand-300: hsl(200, 15%, 94%);
+    --brand-400: hsl(336, 57%, 48%);
+    --brand-500: hsl(336, 57%, 48%);
+    --brand-600: hsl(336, 57%, 48%);
+    --brand-content: hsl(0, 0%, 100%);
 
-@theme {
-    /* Primary */
-    --color-primary: hsl(336, 57%, 48%); /* Primary Colour */
-    --color-primary-focus: hsl(336, 57%, 38%); /* Darker shade (Hover etc.) */
-    --color-primary-content: hsl(0, 0%, 100%); /* White content(text) for contrast */
+    --primary: hsl(336, 57%, 48%);
+    --primary-focus: hsl(336, 57%, 38%);
+    --primary-content: hsl(0, 0%, 100%);
 
-    /* Secondary */
-    --color-secondary: hsl(237, 37%, 20%); /* #292F5B */
-    --color-secondary-focus: hsl(237, 37%, 10%); /* Darker shade (Hover etc.) */
-    --color-secondary-content: hsl(0, 0%, 100%); /* White content(text) for contrast */
+    --secondary: hsl(237, 37%, 20%);
+    --secondary-focus: hsl(237, 37%, 10%);
+    --secondary-content: hsl(0, 0%, 100%);
 
-    /* Ternary */
-    --color-ternary: hsl(206, 23%, 30%); /* #E5E5EA */
-    --color-ternary-focus: hsl(206, 23%, 24%); /* Darker shade */
-    --color-ternary-content: hsl(0, 0%, 80%); /* Black content for contrast */
+    --ternary: hsl(237, 37%, 20%);
+    --ternary-focus: hsl(237, 37%, 10%);
+    --ternary-content: hsl(0, 0%, 100%);
 
-    /* Accent (Complementary color to Primary) */
-    --color-accent: hsl(156, 57%, 48%); /* A contrasting greenish tone */
-    --color-accent-focus: hsl(156, 57%, 38%); /* Darker shade of the a */
-    --color-accent-content: hsl(0, 0%, 0%); /* Black content(text) for contrast */
+    --accent: hsl(156, 57%, 48%);
+    --accent-focus: hsl(156, 57%, 38%);
+    --accent-content: hsl(0, 0%, 0%);
 
-    /* Neutral */
-    --color-neutral: hsl(0, 0%, 20%); /* Grey */
-    --color-neutral-focus: hsl(0, 0%, 30%); /* Darker Grey */
-    --color-neutral-content: hsl(0, 0%, 100%); /* White content(text) */
+    --neutral: hsl(0, 0%, 50%);
+    --neutral-focus: hsl(0, 0%, 40%);
+    --neutral-content: hsl(0, 0%, 100%);
 
-    /* Base */
-    --color-base-100: hsl(0, 0%, 98%); /* Near White */
-    --color-base-200: hsl(0, 0%, 90%); /* Light Grey */
-    --color-base-300: hsl(0, 0%, 82%); /* Mid-Light Grey */
-    --color-base-400: hsl(0, 0%, 72%); /* Mid Grey */
-    --color-base-content: hsl(0, 0%, 0%); /* Black content on white background */
+    --base-100: hsl(0, 0%, 98.5%);
+    --base-200: hsl(49, 2%, 92%);
+    --base-300: hsl(56, 5%, 71%);
+    --base-400: hsl(58, 7%, 55%);
+    --base-content: hsl(0, 0%, 0%);
 
-    /* Info */
-    --color-info: hsla(217, 91%, 60%, 1); /* Blue */
-    --color-info-light: hsla(
-        214,
-        100%,
-        97%,
-        1
-    ); /* Light Blue for use with base content colour */
-    --color-info-content: hsl(0, 0%, 100%); /* White content(text) on light blue background */
+    --info: hsl(217, 91%, 60%);
+    --info-light: hsl(207, 89%, 94%);
+    --info-content: hsl(214, 100%, 97%);
 
-    /* Success */
-    --color-success: hsla(118, 50%, 43%, 1); /* Green */
-    --color-success-light: hsla(
-        152,
-        81%,
-        96%,
-        1
-    ); /* Light Green for use with base content colour */
-    --color-success-content: hsl(0, 0%, 100%); /* White content on light green background */
+    --warn: #ffa000;
+    --warn-light: hsl(60, 100%, 95%);
+    --warn-content: hsl(0, 0%, 0%);
 
-    /* Warning */
-    --color-warn: hsla(45, 100%, 64%, 1); /* Yellow */
-    --color-warn-light: hsla(
-        48,
-        100%,
-        96%,
-        1
-    ); /* Light Yellow for use with base content colour */
-    --color-warn-content: hsl(0, 0%, 0%); /* Black content on yellow background */
+    --success: hsl(118, 50%, 43%);
+    --success-light: hsl(120, 39%, 94%);
+    --success-content: hsl(152, 81%, 96%);
 
-    /* Error */
-    --color-error: hsla(354, 75%, 53%, 1); /* Red */
-    --color-error-light: hsla(
-        356,
-        100%,
-        97%,
-        1
-    ); /* Light Red for use with base content colour */
-    --color-error-content: hsl(0, 0%, 100%); /* White content on red background */
+    --error: hsl(354, 75%, 53%);
+    --error-light: hsl(350, 100%, 96%);
+    --error-content: hsl(0, 0%, 100%);
+
+    --color-brand-100: var(--brand-100);
+    --color-brand-200: var(--brand-200);
+    --color-brand-300: var(--brand-300);
+    --color-brand-400: var(--brand-400);
+    --color-brand-500: var(--brand-500);
+    --color-brand-600: var(--brand-600);
+    --color-brand-content: var(--brand-content);
+    --color-primary: var(--primary);
+    --color-primary-focus: var(--primary-focus);
+    --color-primary-content: var(--primary-content);
+    --color-secondary: var(--secondary);
+    --color-secondary-focus: var(--secondary-focus);
+    --color-secondary-content: var(--secondary-content);
+    --color-ternary: var(--ternary);
+    --color-ternary-focus: var(--ternary-focus);
+    --color-ternary-content: var(--ternary-content);
+    --color-accent: var(--accent);
+    --color-accent-focus: var(--accent-focus);
+    --color-accent-content: var(--accent-content);
+    --color-neutral: var(--neutral);
+    --color-neutral-focus: var(--neutral-focus);
+    --color-neutral-content: var(--neutral-content);
+    --color-base-100: var(--base-100);
+    --color-base-200: var(--base-200);
+    --color-base-300: var(--base-300);
+    --color-base-400: var(--base-400);
+    --color-base-content: var(--base-content);
+    --color-info: var(--info);
+    --color-info-light: var(--info-light);
+    --color-info-content: var(--info-content);
+    --color-warn: var(--warn);
+    --color-warn-light: var(--warn-light);
+    --color-warn-content: var(--warn-content);
+    --color-success: var(--success);
+    --color-success-light: var(--success-light);
+    --color-success-content: var(--success-content);
+    --color-error: var(--error);
+    --color-error-light: var(--error-light);
+    --color-error-content: var(--error-content);
 }
 
 #placeos .theme-dark {
-    /* @theme { */
-        /* Primary */
-        --color-primary: hsl(237, 37%, 20%); /* #292F5B */
-        --color-primary-focus: hsl(237, 37%, 10%); /* Lighter shade (Hover etc.) */
-        --color-primary-focus: hsl(0, 0%, 100%); /* White content(text) for contrast */
-    
-        /* Secondary */
-        --color-secondary: hsl(237, 37%, 20%); /* #292F5B */
-        --color-secondary-focus: hsl(237, 37%, 10%); /* Darker shade (Hover etc.) */
-        --color-secondary-content: hsl(0, 0%, 100%); /* White content(text) for contrast */
-    
-        /* Ternary */
-        --color-ternary: hsl(206, 23%, 30%); /* #E5E5EA */
-        --color-ternary-focus: hsl(206, 23%, 24%); /* Darker shade */
-        --color-ternary-content: hsl(0, 0%, 80%); /* Black content for contrast */
-    
-        /* Accent */
-        --color-accent: hsl(156, 57%, 28%); /* Darker shade of complementary color */
-        --color-accent-focus: hsl(158, 17%, 9%); /* Even darker shade */
-        --color-accent-content: hsl(0, 0%, 80%); /* Lighter text(text) for contrast */
-    
-        /* Neutral */
-        --color-neutral: hsl(0, 0%, 20%); /* Dark Grey */
-        --color-neutral-focus: hsl(0, 0%, 15%); /* Even darker Grey */
-        --color-neutral-content: hsl(0, 0%, 80%); /* Light grey text for contrast */
-    
-        /* Base */
-        --color-base-100: hsl(0, 0%, 10%); /* Near Black */
-        --color-base-200: hsl(0, 0%, 15%); /* Dark Grey */
-        --color-base-300: hsl(0, 0%, 20%); /* Mid-Dark Grey */
-        --color-base-400: hsl(0, 0%, 25%); /* Mid Grey */
-        --color-base-content: hsl(0, 0%, 80%); /* Light grey text for contrast */
-    
-        /* Info */
-        --color-info: hsla(217, 91%, 60%, 1); /* Blue */
-        --color-info-light: hsla(
-            214,
-            100%,
-            97%,
-            1
-        ); /* Light Blue for use with base content colour */
-        --color-info-content: hsl(0, 0%, 100%); /* White content on light blue background */
-    
-        /* Success */
-        --color-success: hsla(118, 50%, 43%, 1); /* Green */
-        --color-success-light: hsla(
-            152,
-            81%,
-            96%,
-            1
-        ); /* Light Green for use with base content colour */
-        --color-success-content: hsl(0, 0%, 100%); /* White content on light green background */
-    
-        /* Warning */
-        --color-warn: hsla(45, 100%, 64%, 1); /* Yellow */
-        --color-warn-light: hsla(
-            48,
-            100%,
-            96%,
-            1
-        ); /* Light Yellow for use with base content colour */
-        --color-warn-content: hsl(0, 0%, 0%); /* Black content on yellow background */
-    
-        /* Error */
-        --color-error: hsla(354, 75%, 53%, 1); /* Red */
-        --color-error-light: hsla(
-            356,
-            100%,
-            97%,
-            1
-        ); /* Light Red for use with base content colour */
-        --color-error-content: hsl(0, 0%, 100%); /* White content on red background */
-    /* } */
+    --brand-100: hsl(336, 57%, 48%);
+    --brand-200: hsl(217, 91%, 60%);
+    --brand-300: hsl(232, 50%, 48%);
+    --brand-400: hsl(336, 57%, 48%);
+    --brand-500: hsl(336, 57%, 48%);
+    --brand-600: hsl(336, 57%, 48%);
+    --brand-content: hsl(0, 0%, 100%);
+
+    --primary: hsl(336, 57%, 48%);
+    --primary-focus: hsl(336, 57%, 38%);
+    --primary-content: hsl(0, 0%, 100%);
+
+    --secondary: hsl(232, 50%, 48%);
+    --secondary-focus: hsl(336, 57%, 38%);
+    --secondary-content: hsl(0, 0%, 100%);
+
+    --ternary: hsl(206, 23%, 30%);
+    --ternary-focus: hsl(206, 23%, 24%);
+    --ternary-content: hsl(0, 0%, 80%);
+
+    --accent: hsl(156, 57%, 28%);
+    --accent-focus: hsl(158, 17%, 9%);
+    --accent-content: hsl(0, 0%, 80%);
+
+    --neutral: hsl(0, 0%, 20%);
+    --neutral-focus: hsl(0, 0%, 15%);
+    --neutral-content: hsl(0, 0%, 80%);
+
+    --base-100: hsl(0, 0%, 10%);
+    --base-200: hsl(0, 0%, 15%);
+    --base-300: hsl(0, 0%, 20%);
+    --base-400: hsl(0, 0%, 30%);
+    --base-content: hsl(0, 0%, 80%);
+
+    --info: hsl(211, 80%, 42%);
+    --info-light: hsl(206, 90%, 61%);
+    --info-content: hsl(0, 0%, 100%);
+
+    --warn: hsl(34, 100%, 50%);
+    --warn-light: hsl(44, 100%, 65%);
+    --warn-content: hsl(0, 0%, 0%);
+
+    --success: hsl(122, 46%, 34%);
+    --success-light: hsl(122, 39%, 57%);
+    --success-content: hsl(0, 0%, 100%);
+
+    --error: hsl(0, 66%, 47%);
+    --error-light: hsl(4, 83%, 63%);
+    --error-content: hsl(0, 0%, 100%);
 }
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+html,
+body {
+    height: 100%;
+}
+body {
+    margin: 0;
+    font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
 
 #placeos {
     mat-form-field {
@@ -167,19 +167,18 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
     .mat-mdc-select-value-text,
     .mat-mdc-select-arrow,
     .mdc-select-arrow {
-        color: var(--color-base-content);
+        color: var(--base-content);
     }
 
-
     mat-pseudo-checkbox.mdc-pseudo-checkbox-checked {
-        background: var(--color-primary);
+        background: var(--primary);
     }
 
     mat-checkbox {
         .mdc-checkbox__background {
-            border-color: var(--color-neutral);
+            border-color: var(--neutral);
             svg {
-                color: var(--color-info-content);
+                color: var(--info-content);
             }
         }
 
@@ -191,20 +190,20 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
         &.mat-mdc-checkbox-checked,
         &[ng-reflect-indeterminate='true'] {
             .mdc-checkbox__background {
-                border-color: var(--color-info);
-                background-color: var(--color-info);
+                border-color: var(--info);
+                background-color: var(--info);
             }
         }
     }
     .mdc-form-field-outline > div {
-        color: var(--color-base-200);
+        color: var(--base-200);
     }
 
     .mdc-form-field,
     .mdc-text-field__input {
         ::placeholder,
         .mdc-select-placeholder {
-            color: var(--color-base-200);
+            color: var(--base-200);
         }
     }
 
@@ -219,21 +218,20 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
     .mdc-notched-outline__leading,
     .mdc-notched-outline__trailing {
-        border-color: var(--color-neutral);
+        border-color: var(--neutral);
     }
 
-
     .mat-mdc-option.mdc-list-item {
-        color: var(--color-base-content);
+        color: var(--base-content);
         &:hover {
-            background-color: var(--color-base-200);
+            background-color: var(--base-200);
         }
     }
 
-    .mdc-text-field__input{
-        color: var(--color-base-content);
+    .mdc-text-field__input {
+        color: var(--base-content);
         &::placeholder {
-            color: var(--color-base-content);
+            color: var(--base-content);
             opacity: 0.3;
         }
     }
@@ -244,8 +242,8 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
     }
 
     .mat-mdc-select-panel {
-        background-color: var(--color-base-100);
-        color: var(--color-base-content);
+        background-color: var(--base-100);
+        color: var(--base-content);
     }
 
     mat-snack-bar-container {
@@ -257,27 +255,27 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
         }
         &.success {
             .mdc-snackbar__surface {
-                background-color: var(--color-success);
-                color: var(--color-success-content);
+                background-color: var(--success);
+                color: var(--success-content);
             }
         }
         &.info {
             .mdc-snackbar__surface {
-                background-color: var(--color-info);
-                color: var(--color-info-content);
+                background-color: var(--info);
+                color: var(--info-content);
             }
         }
         &.error {
             .mdc-snackbar__surface {
-                background-color: var(--color-error);
-                color: var(--color-error-content);
+                background-color: var(--error);
+                color: var(--error-content);
             }
         }
         &.warning,
         &.warn,
         &.pending {
             .mdc-snackbar__surface {
-                background-color: var(--color-warn);
+                background-color: var(--warn);
                 color: var(--color-warn-content);
             }
         }

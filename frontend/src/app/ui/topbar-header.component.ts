@@ -11,17 +11,13 @@ import { TranslatePipe } from './translate.pipe';
         <div
             class="bg-secondary text-secondary-content border-base-300 flex w-full items-center space-x-2 border-b p-2"
         >
-            <button
-                icon
-                matRipple
-                class="text-secondary-content"
-                (click)="toggle()"
-            >
-                <icon class="text-2xl">{{
-                    show_sidebar ? 'close' : 'menu'
-                }}</icon>
+            <button icon default matRipple (click)="toggle()">
+                <icon>{{ show_sidebar ? 'close' : 'menu' }}</icon>
             </button>
-            <a [routerLink]="['/']" class="h-full">
+            <a
+                [routerLink]="['/']"
+                class="bg-base-content/5 h-full rounded-lg p-1"
+            >
                 <img class="h-10 sm:block" alt="PlaceOS" [src]="logo" />
             </a>
             <h2 class="m-0 px-4 text-xl font-medium">
@@ -74,10 +70,8 @@ import { TranslatePipe } from './translate.pipe';
                     </div>
                 </button>
             </mat-menu> -->
-            <button icon matRipple (click)="toggleDarkMode()">
-                <icon class="text-2xl">{{
-                    dark_mode() ? 'dark_mode' : 'light_mode'
-                }}</icon>
+            <button icon default matRipple (click)="toggleDarkMode()">
+                <icon>{{ dark_mode() ? 'dark_mode' : 'light_mode' }}</icon>
             </button>
         </div>
     `,

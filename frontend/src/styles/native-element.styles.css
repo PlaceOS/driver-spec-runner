@@ -1,5 +1,20 @@
-
 label {
-    font-size: .75rem;
+    font-size: 0.75rem;
     font-weight: 600;
+}
+
+#placeos {
+    input::placeholder,
+    .mat-mdc-select-placeholder {
+        color: var(--base-400);
+    }
+
+    input {
+        color: var(--base-content);
+    }
+
+    .mat-mdc-select-min-line,
+    .mat-mdc-select-arrow {
+        color: var(--base-content);
+    }
 }

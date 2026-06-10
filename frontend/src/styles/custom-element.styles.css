@@ -1,90 +1,122 @@
-
-
-
 .mat-form-field .mat-select-value,
 .mat-form-field input {
     position: relative;
     top: -4px;
 }
 
-button[btn],
+button[btn]:not([icon]),
 a[btn] {
-    --bg-color: var(--color-ternary);
-    --color: var(--color-ternary-content);
+    --bg-color: var(--secondary);
+    --color: var(--secondary-content);
     background-color: var(--bg-color);
     border: 1px solid var(--bg-color);
     color: var(--color);
     padding: 0 1rem;
     min-height: 3rem;
     border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &.inverse {
         color: var(--bg-color);
         background-color: transparent;
     }
 
+    &.clear {
+        --color: var(--base-content);
+        background: none;
+        border: none;
+    }
+
     &.info {
-        --bg-color: var(--color-info);
-        --color: var(--color-info-content);
+        --bg-color: var(--info);
+        --color: var(--info-content);
     }
 
     &.error {
-        --bg-color: var(--color-error);
-        --color: var(--color-error-content);
+        --bg-color: var(--error);
+        --color: var(--error-content);
     }
 
     &.success {
-        --bg-color: var(--color-success);
-        --color: var(--color-success-content);
+        --bg-color: var(--success);
+        --color: var(--success-content);
     }
 
-    &:not([disabled="false"])[disabled] {
-        --bg-color: var(--color-base-400);
-        --color: var(--color-base-content);
+    &.base {
+        --bg-color: var(--base-100);
+        --color: var(--base-content);
+    }
+
+    &.white {
+        --bg-color: #fff;
+        --color: #000;
+    }
+
+    &:not([disabled='false'])[disabled] {
+        --bg-color: var(--base-400);
+        --color: var(--base-content);
         opacity: 0.3;
         pointer-events: none;
     }
 }
 
-button.mat-button,
-a[button],
-.dark-mode button.mat-button,
-.dark-mode a[button] {
-    background-color: #c92366;
-    border: 1px solid #c92366;
-    color: #fff;
-    min-height: 3em;
+#placeos .mdc-icon-button,
+button[icon],
+a[icon] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5em;
+    width: 2.5em;
+    min-width: 2.5em;
+    font-size: 1em;
+    padding: 0;
+    border-radius: 9999px;
+    cursor: pointer;
 
-    &.inverse {
-        background-color: #fff;
-        color: #c92366;
+    .mdc-button-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
     }
 
-    &.success {
-        background-color: #43a047;
-        border-color: #43a047;
+    icon {
+        font-size: 1.5em;
     }
 
-    &.clear {
-        background: none;
-        border: none;
-        color: rgba(#000, 0.85);
-    }
+    &[default] {
+        background: var(--base-100);
+        border: 1px solid var(--base-300);
+        border-radius: 0.5rem;
+        color: var(--base-content);
 
-    &.error {
-        background: none;
-        color: #e53935;
-        border-color: #e53935;
+        &:hover {
+            background: var(--base-200);
+            border-color: var(--base-400);
+            --tw-shadow:
+                0 4px 6px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1)),
+                0 2px 4px -2px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+            box-shadow:
+                var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
+                var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+                var(--tw-shadow);
+        }
+
+        &[error] {
+            --base-200: var(--error-light);
+            --base-300: var(--error);
+            --base-400: var(--error);
+            --base-content: var(--error);
+        }
     }
 
     &[disabled] {
-        background-color: #ccc;
-        border-color: rgba(#000, 0.1);
-        pointer-events: none;
+        opacity: 0.35;
     }
 }
-
-
 
 .mat-spinner {
     circle {
