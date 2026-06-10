@@ -1,9 +1,14 @@
-import { effect, inject, Injectable, signal } from '@angular/core';
+import {
+    inject,
+    Injectable,
+    linkedSignal,
+    resource,
+    signal,
+} from '@angular/core';
 
 import { apiEndpoint, toQueryString } from '../common/api';
 import { get, post } from '../common/http';
 import {
-    CommitOptions,
     LATEST_COMMIT,
     RepositoryCommit,
     SpecBuildService,
@@ -49,19 +54,61 @@ export interface TestResponse {
 export class SpecTestService {
     private _build = inject(SpecBuildService);
 
-    /** Currently active repository */
-    private _active_spec = signal('');
-    /** Currently active repository */
-    private _active_commit = signal<RepositoryCommit | null>(null);
-    /** Currently active repository */
+    /** User settings for test runs */
     private _settings = signal<TestSettings>({});
-    /** Currently available spec files */
-    private _spec_list = signal<string[]>([]);
-    /** Currently available spec commits */
-    private _commit_list = signal<RepositoryCommit[]>([]);
 
-    private _spec_list_request = 0;
-    private _commit_list_request = 0;
+    /** Spec files available in the selected repository */
+    private _spec_list = resource({
+        params: () => this._build.active_repo() || undefined,
+        loader: ({ params: repo, abortSignal }) => {
+            const query = toQueryString({
+                repository: repo === 'Public' ? '' : repo,
+            });
+            const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
+            return get<string[]>(url, abortSignal).catch(() => []);
+        },
+        defaultValue: [] as string[],
+    });
+
+    /** Selected spec file, defaults to the closest match for the driver */
+    private _active_spec = linkedSignal({
+        source: () => ({
+            driver: this._build.active_driver(),
+            list: this._spec_list.value(),
+        }),
+        computation: ({ driver, list }) => this.closestSpec(driver, list),
+    });
+
+    /** Commits available for the selected spec file */
+    private _commit_list = resource({
+        params: () => this._active_spec() || undefined,
+        loader: async ({ params: spec, abortSignal }) => {
+            const url = `${apiEndpoint()}/test/${encodeURIComponent(
+                spec,
+            )}/commits`;
+            const list = await get<RepositoryCommit[]>(url, abortSignal).catch(
+                () => null,
+            );
+            return list ? [LATEST_COMMIT, ...list] : [];
+        },
+        defaultValue: [] as RepositoryCommit[],
+    });
+
+    /** Selected spec commit, resets when the commit list reloads */
+    private _active_commit = linkedSignal<
+        RepositoryCommit[],
+        RepositoryCommit | null
+    >({
+        source: this._commit_list.value,
+        computation: (commits) => commits[0] || null,
+    });
+
+    /** Socket for the active test run */
+    private _socket: WebSocket | null = null;
+    /** Accumulated output of the active or last test run */
+    private _run_output = signal('');
+    /** Whether a test run is currently in progress */
+    private _run_active = signal(false);
 
     public readonly active_spec = this._active_spec.asReadonly();
 
@@ -69,25 +116,13 @@ export class SpecTestService {
 
     public readonly settings = this._settings.asReadonly();
 
-    public readonly spec_list = this._spec_list.asReadonly();
+    public readonly spec_list = this._spec_list.value.asReadonly();
 
-    public readonly commit_list = this._commit_list.asReadonly();
+    public readonly commit_list = this._commit_list.value.asReadonly();
 
-    constructor() {
-        effect(() => {
-            const repo = this._build.active_repo();
-            this.reloadSpecFiles(repo);
-        });
-        effect(() => {
-            const driver = this._build.active_driver();
-            const list = this._spec_list();
-            this.selectClosestSpec(driver, list);
-        });
-        effect(() => {
-            const spec = this._active_spec();
-            this.reloadSpecCommits(spec);
-        });
-    }
+    public readonly run_output = this._run_output.asReadonly();
+
+    public readonly run_active = this._run_active.asReadonly();
 
     public setSpec(spec: string): void {
         this._active_spec.set(spec);
@@ -101,26 +136,9 @@ export class SpecTestService {
         this._settings.update((current) => ({ ...current, ...options }));
     }
 
-    public async loadSpecFiles(
-        options: SpecQueryOptions = {},
-    ): Promise<string[]> {
-        const query = toQueryString(options);
-        const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
-        return get(url);
-    }
-
-    public async loadSpecCommits(
-        id: string,
-        options: CommitOptions,
-    ): Promise<RepositoryCommit[]> {
-        const url = `${apiEndpoint()}/test/${encodeURIComponent(id)}/commits`;
-        const list = await get(url);
-        this._active_commit.set(LATEST_COMMIT);
-        return [LATEST_COMMIT, ...list];
-    }
-
     public async runSpec(options: RunTestOptions = {}) {
         options = this._generateRunOptions(options);
+        if (!options.spec) return;
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/test${query ? '?' + query : ''}`;
         return post(url, query, 'text').then((data) =>
@@ -128,31 +146,60 @@ export class SpecTestService {
         );
     }
 
-    public runSpecWithFeedback(
-        options: RunTestOptions = {},
-        onMessage: (message: string) => void,
-        onComplete: () => void,
-    ): () => void {
+    /** Run the selected spec, streaming results into the run signals */
+    public async startSpecRun(options: RunTestOptions = {}): Promise<void> {
+        this.stopSpecRun();
+        this._run_output.set('');
+        this._run_active.set(true);
+        if (localStorage.getItem('DEBUG_WITH_API')) {
+            const result = await this.runSpec(options).catch((e) => `${e}`);
+            this._appendRunOutput(result);
+            this._run_active.set(false);
+            return;
+        }
         options = this._generateRunOptions(options);
+        if (!options.spec) return;
         const query = toQueryString(options);
         const secure = location.protocol.includes('https');
         const url = `ws${secure ? 's' : ''}://${location.host}/test/run_spec${
             query ? '?' + query : ''
         }`;
         const socket = new WebSocket(url);
+        this._socket = socket;
         socket.addEventListener('message', ({ data }) =>
-            onMessage(this._parseResponse(data)),
+            this._appendRunOutput(this._parseResponse(data)),
         );
-        socket.addEventListener('error', () => onMessage(''));
-        socket.addEventListener('close', () => onComplete());
-        return () => {
-            if (
-                socket.readyState === WebSocket.OPEN ||
-                socket.readyState === WebSocket.CONNECTING
-            ) {
-                socket.close();
-            }
-        };
+        socket.addEventListener('error', () => this._appendRunOutput(''));
+        socket.addEventListener('close', () => {
+            if (this._socket !== socket) return;
+            this._socket = null;
+            this._run_active.set(false);
+        });
+    }
+
+    /** Close the active test run socket */
+    public stopSpecRun(): void {
+        const socket = this._socket;
+        this._socket = null;
+        this._run_active.set(false);
+        if (
+            socket &&
+            (socket.readyState === WebSocket.OPEN ||
+                socket.readyState === WebSocket.CONNECTING)
+        ) {
+            socket.close();
+        }
+    }
+
+    public clearRunOutput(): void {
+        this._run_output.set('');
+    }
+
+    private _appendRunOutput(message: string): void {
+        this._run_output.update((current) => current + message);
+        const passed = message.includes('exited with 0');
+        this._build.setTestStatus(passed ? 'passed' : 'failed');
+        if (passed) this.stopSpecRun();
     }
 
     private _generateRunOptions(options: RunTestOptions = {}) {
@@ -207,35 +254,14 @@ export class SpecTestService {
         return value;
     }
 
-    private async reloadSpecFiles(repo: string): Promise<void> {
-        const request = ++this._spec_list_request;
-        const list = await this.loadSpecFiles({
-            repository: repo === 'Public' ? '' : repo,
-        }).catch(() => []);
-        if (request === this._spec_list_request) this._spec_list.set(list);
-    }
-
-    private async reloadSpecCommits(spec: string): Promise<void> {
-        const request = ++this._commit_list_request;
-        const list = spec
-            ? await this.loadSpecCommits(spec, {
-                  repository: spec === 'Public' ? undefined : spec,
-              }).catch(() => [])
-            : [];
-        if (request === this._commit_list_request) this._commit_list.set(list);
-    }
-
-    private selectClosestSpec(driver: string, list: string[]): void {
-        if (!driver || !list.length) {
-            this._active_spec.set('');
-            return;
-        }
+    private closestSpec(driver: string, list: string[]): string {
+        if (!driver || !list.length) return '';
         const comp = list.map((spec: string) => ({
             spec,
             similarity: this.stringSimilarity(spec, driver),
         }));
         comp.sort((a: any, b: any) => b.similarity - a.similarity);
-        this._active_spec.set(comp[0].similarity > 0.7 ? comp[0].spec : '');
+        return comp[0].similarity > 0.7 ? comp[0].spec : '';
     }
 
     private stringSimilarity(a: string, b: string): number {

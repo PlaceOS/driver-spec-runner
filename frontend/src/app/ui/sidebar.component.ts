@@ -78,7 +78,7 @@ import { TranslatePipe } from './translate.pipe';
                                 [class.bg-warn]="!status"
                                 [class.bg-success]="status === 'passed'"
                                 [class.bg-error]="status === 'failed'"
-                                class="h-2 w-2 rounded-full shadow"
+                                class="border-base-100/30 h-2.5 w-2.5 rounded-full border"
                             ></div>
                             <div
                                 class="w-1/2 flex-1 truncate font-mono text-xs"
@@ -87,7 +87,7 @@ import { TranslatePipe } from './translate.pipe';
                         </div>
                         <div
                             active
-                            class="bg-base-300 absolute inset-y-1 right-0 hidden w-2 rounded-l-lg"
+                            class="bg-primary absolute inset-y-1 right-0 hidden w-2 rounded-l-lg"
                         ></div>
                     </a>
                 } @empty {
@@ -115,8 +115,8 @@ import { TranslatePipe } from './translate.pipe';
             }
             a.active {
                 [content] {
-                    background: var(--primary);
-                    color: var(--primary-content);
+                    background: var(--base-300);
+                    color: var(--base-content);
                 }
                 [active] {
                     display: block !important;

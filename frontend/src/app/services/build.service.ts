@@ -1,4 +1,10 @@
-import { effect, Injectable, signal } from '@angular/core';
+import {
+    effect,
+    Injectable,
+    linkedSignal,
+    resource,
+    signal,
+} from '@angular/core';
 
 import { apiEndpoint, toQueryString } from '../common/api';
 import { del, get, post } from '../common/http';
@@ -54,50 +60,104 @@ export const LATEST_COMMIT = {
     providedIn: 'root',
 })
 export class SpecBuildService {
-    /** Currently active repository */
+    /** Whether the sidebar is visible */
     private _sidebar = signal(true);
-    /** Currently available repositories */
-    private _repo_list = signal<string[]>([]);
-    /** Currently active repository */
-    private _active_repo = signal('');
-    /** Currently active repository */
+    /** Currently selected driver */
     private _active_driver = signal('');
-    /** Currently active repository */
-    private _active_commit = signal<RepositoryCommit | null>(null);
-    /** Currently active repository */
+    /** Test statuses of previously run drivers */
     private _test_statuses = signal<HashMap<string>>({});
-    /** Currently available drivers */
-    private _driver_list = signal<string[]>([]);
-    /** Currently available driver versions */
-    private _driver_versions = signal<string[]>([]);
-    /** Currently available driver commits */
-    private _driver_commits = signal<RepositoryCommit[]>([]);
 
-    private _driver_list_request = 0;
-    private _driver_commits_request = 0;
-    private _driver_versions_request = 0;
+    /** Currently available repositories */
+    private _repo_list = resource({
+        loader: async ({ abortSignal }) => {
+            const url = `${apiEndpoint()}/build/repositories`;
+            const list = await get<string[]>(url, abortSignal).catch(() => []);
+            return ['Public', ...list.filter((i) => i[0] !== '.')];
+        },
+        defaultValue: [] as string[],
+    });
+
+    /** Currently selected repository, defaults to the first available */
+    private _active_repo = linkedSignal<string[], string>({
+        source: this._repo_list.value,
+        computation: (repos, previous) =>
+            previous && repos.includes(previous.value)
+                ? previous.value
+                : repos[0] || '',
+    });
+
+    /** Drivers available in the selected repository */
+    private _driver_list = resource({
+        params: () => this._active_repo() || undefined,
+        loader: ({ params: repo, abortSignal }) => {
+            const query = toQueryString({
+                repository: repo === 'Public' ? undefined : repo,
+            });
+            const url = `${apiEndpoint()}/build${query ? '?' + query : ''}`;
+            return get<string[]>(url, abortSignal).catch(() => []);
+        },
+        defaultValue: [] as string[],
+    });
+
+    /** Compiled versions of the selected driver */
+    private _driver_versions = resource({
+        params: () => this._active_driver() || undefined,
+        loader: ({ params: driver, abortSignal }) => {
+            const url = `${apiEndpoint()}/build/${encodeURIComponent(driver)}`;
+            return get<string[]>(url, abortSignal).catch(() => []);
+        },
+        defaultValue: [] as string[],
+    });
+
+    /** Commits available for the selected driver */
+    private _driver_commits = resource({
+        params: () => {
+            const driver = this._active_driver();
+            return driver
+                ? { driver, repository: this._active_repo() }
+                : undefined;
+        },
+        loader: async ({ params, abortSignal }) => {
+            const url = `${apiEndpoint()}/build/${encodeURIComponent(
+                params.driver,
+            )}/commits`;
+            const list = await get<RepositoryCommit[]>(url, abortSignal).catch(
+                () => null,
+            );
+            return list ? [LATEST_COMMIT, ...list] : [];
+        },
+        defaultValue: [] as RepositoryCommit[],
+    });
+
+    /** Currently selected driver commit, resets when the commit list reloads */
+    private _active_commit = linkedSignal<
+        RepositoryCommit[],
+        RepositoryCommit | null
+    >({
+        source: this._driver_commits.value,
+        computation: (commits) => commits[0] || null,
+    });
 
     /** Signal of the sidebar visibility state */
     public readonly sidebar = this._sidebar.asReadonly();
     /** Signal of the currently available repositories */
-    public readonly repositories = this._repo_list.asReadonly();
+    public readonly repositories = this._repo_list.value.asReadonly();
     /** Signal of the currently selected repository */
     public readonly active_repo = this._active_repo.asReadonly();
     /** Signal of the test statuses */
     public readonly test_statuses = this._test_statuses.asReadonly();
     /** Signal of the currently selected driver commit */
     public readonly active_commit = this._active_commit.asReadonly();
-    /** Currently available drivers */
-    public readonly driver_list = this._driver_list.asReadonly();
-    /** Currently available drivers */
-    public readonly driver_versions = this._driver_versions.asReadonly();
+    /** Signal of the currently available drivers */
+    public readonly driver_list = this._driver_list.value.asReadonly();
+    /** Signal of the available versions of the selected driver */
+    public readonly driver_versions = this._driver_versions.value.asReadonly();
     /** Signal of the currently selected driver */
     public readonly active_driver = this._active_driver.asReadonly();
-    /** Currently available drivers */
-    public readonly driver_commits = this._driver_commits.asReadonly();
+    /** Signal of the available commits for the selected driver */
+    public readonly driver_commits = this._driver_commits.value.asReadonly();
 
     constructor() {
-        this.loadRepositories();
         this._test_statuses.set(
             JSON.parse(localStorage.getItem('HARNESS.statuses') || '{}'),
         );
@@ -137,31 +197,11 @@ export class SpecBuildService {
     }
 
     public setRepository(name: string): void {
-        if (name !== this._active_repo()) {
-            this._active_repo.set(name);
-            this.reloadDrivers();
-            this.reloadDriverCommits();
-        }
+        this._active_repo.set(name);
     }
 
     public setDriver(path: string): void {
-        if (path !== this._active_driver()) {
-            this._active_driver.set(path);
-            this.reloadDriverVersions();
-            this.reloadDriverCommits();
-        }
-    }
-
-    public async loadRepositories(): Promise<void> {
-        console.log('Load repos');
-        const url = `${apiEndpoint()}/build/repositories`;
-        const repo_list = await get(url).catch(() => []);
-        console.log('Repo List:', repo_list);
-        const list = ['Public', ...repo_list.filter((i) => i[0] !== '.')];
-        this._repo_list.set(list);
-        if (!this._active_repo()) {
-            this.setRepository(list[0]);
-        }
+        this._active_driver.set(path);
     }
 
     public async loadRepositoryCommits(
@@ -172,29 +212,6 @@ export class SpecBuildService {
         return [LATEST_COMMIT, ...list];
     }
 
-    public async loadDrivers(
-        options: DriverListingOptions = {},
-    ): Promise<string[]> {
-        const query = toQueryString(options);
-        const url = `${apiEndpoint()}/build${query ? '?' + query : ''}`;
-        return get(url);
-    }
-
-    public async loadDriverCommits(
-        id: string,
-        options: CommitOptions = {},
-    ): Promise<RepositoryCommit[]> {
-        const url = `${apiEndpoint()}/build/${encodeURIComponent(id)}/commits`;
-        const list = await get(url);
-        this._active_commit.set(LATEST_COMMIT);
-        return [LATEST_COMMIT, ...list];
-    }
-
-    public async loadDriverVersions(id: string): Promise<string[]> {
-        const url = `${apiEndpoint()}/build/${encodeURIComponent(id)}`;
-        return get(url);
-    }
-
     public async cleanDriverVersions(
         id: string,
         options: DriverClearOptions,
@@ -203,46 +220,13 @@ export class SpecBuildService {
         const url = `${apiEndpoint()}/build/${encodeURIComponent(id)}${
             query ? '?' + query : ''
         }`;
-        return del(url);
+        await del(url);
+        this._driver_versions.reload();
     }
 
     public async compileDriver(options: DriverCompileOptions): Promise<void> {
         const query = toQueryString(options);
         const url = `${apiEndpoint()}/build`;
         return post(url, query);
-    }
-
-    private async reloadDrivers(): Promise<void> {
-        const request = ++this._driver_list_request;
-        const repo = this._active_repo();
-        const list = await this.loadDrivers({
-            repository: repo === 'Public' ? undefined : repo,
-        }).catch(() => []);
-        if (request === this._driver_list_request) this._driver_list.set(list);
-    }
-
-    private async reloadDriverVersions(): Promise<void> {
-        const request = ++this._driver_versions_request;
-        const driver = this._active_driver();
-        const list = driver
-            ? await this.loadDriverVersions(driver).catch(() => [])
-            : [];
-        if (request === this._driver_versions_request) {
-            this._driver_versions.set(list);
-        }
-    }
-
-    private async reloadDriverCommits(): Promise<void> {
-        const request = ++this._driver_commits_request;
-        const repo = this._active_repo();
-        const driver = this._active_driver();
-        const list = driver
-            ? await this.loadDriverCommits(driver, { repository: repo }).catch(
-                  () => [],
-              )
-            : [];
-        if (request === this._driver_commits_request) {
-            this._driver_commits.set(list);
-        }
     }
 }

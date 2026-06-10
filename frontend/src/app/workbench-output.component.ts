@@ -29,8 +29,8 @@ import { TranslatePipe } from './ui/translate.pipe';
                     default
                     matRipple
                     [matTooltip]="'TESTS_RUN' | translate"
-                    [disabled]="running()"
-                    (click)="runTestsWithFeedback()"
+                    [disabled]="running() || !spec_file()"
+                    (click)="runTests()"
                 >
                     @if (running()) {
                         <mat-spinner [diameter]="24" />
@@ -101,68 +101,37 @@ export class WorkbenchOutputComponent extends AsyncHandler {
     private _build = inject(SpecBuildService);
     private _tests = inject(SpecTestService);
 
-    public readonly results = signal('');
+    public readonly results = this._tests.run_output;
     public readonly fullscreen = signal(false);
-    public readonly running = signal(false);
+    public readonly running = this._tests.run_active;
+    public readonly spec_file = this._tests.active_spec;
+
+    private readonly _body_el = viewChild<ElementRef<HTMLDivElement>>('body');
 
     constructor() {
         super();
         effect(() => {
             this._build.active_driver();
-            this.results.set('');
+            this._tests.clearRunOutput();
+        });
+        effect(() => {
+            if (!this._tests.run_output()) return;
+            this.timeout(
+                'scroll',
+                () => {
+                    const element = this._body_el()?.nativeElement;
+                    element?.scrollTo(0, element.scrollHeight);
+                },
+                10,
+            );
         });
     }
 
-    public readonly runTests = async () => {
-        this.running.set(true);
-        this.results.set(
-            this.processResults(await this._tests.runSpec({}).catch((i) => i)),
-        );
-        this.running.set(false);
-    };
-
-    public readonly runTestsWithFeedback = async () => {
-        this.results.set('');
-        this.running.set(true);
-        if (localStorage.getItem('DEBUG_WITH_API')) {
-            this.runTests();
-        } else {
-            this.subscription(
-                'test',
-                this._tests.runSpecWithFeedback(
-                    {},
-                    (data) =>
-                        this.results.update(
-                            (current) => current + this.processResults(data),
-                        ),
-                    () => this.running.set(false),
-                ),
-            );
-        }
-    };
-
-    private readonly _body_el = viewChild<ElementRef<HTMLDivElement>>('body');
+    public runTests() {
+        this._tests.startSpecRun();
+    }
 
     public cancelTests() {
-        this.timeout('terminate', () => {
-            this.unsub('test');
-            this.running.set(false);
-        });
-    }
-
-    private processResults(details: string): string {
-        const success = details.indexOf('exited with 0') >= 0;
-        this._build.setTestStatus(success ? 'passed' : 'failed');
-        if (success) this.cancelTests();
-        this.timeout(
-            'scroll',
-            () =>
-                this._body_el().nativeElement.scrollTo(
-                    0,
-                    this._body_el().nativeElement.scrollHeight,
-                ),
-            10,
-        );
-        return details;
+        this.timeout('terminate', () => this._tests.stopSpecRun());
     }
 }
