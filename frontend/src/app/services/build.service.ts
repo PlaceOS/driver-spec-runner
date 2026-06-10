@@ -155,7 +155,7 @@ export class SpecBuildService {
     public async loadRepositories(): Promise<void> {
         console.log('Load repos');
         const url = `${apiEndpoint()}/build/repositories`;
-        const repo_list = await get(url);
+        const repo_list = await get(url).catch(() => []);
         console.log('Repo List:', repo_list);
         const list = ['Public', ...repo_list.filter((i) => i[0] !== '.')];
         this._repo_list.set(list);

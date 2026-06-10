@@ -14,7 +14,9 @@ import { TranslatePipe } from './translate.pipe';
 @Component({
     selector: 'sidebar',
     template: `
-        <div class="bg-base-100 flex h-full max-w-[20rem] flex-col">
+        <div
+            class="bg-base-100 border-base-300 flex h-full max-w-[20rem] flex-col border-r"
+        >
             <mat-form-field
                 appearance="outline"
                 class="no-subscript m-2 w-[calc(100%-1rem)]"
@@ -60,28 +62,32 @@ import { TranslatePipe } from './translate.pipe';
                 @for (driver of driver_list; track driver) {
                     <a
                         matRipple
-                        class="hover:bg-base-200 relative flex w-full items-center p-2 text-left"
+                        class="hover:bg-base-200 relative flex w-full gap-2 py-1 pr-3 pl-1"
                         [routerLink]="['/', repo, driver]"
                         routerLinkActive="active"
                         (click)="setDriver(driver)"
                         [title]="driver"
                     >
                         @let status = statues()[repo + '|' + driver];
-
                         <div
-                            name="dot"
-                            [class.bg-warn]="!status"
-                            [class.bg-success]="status === 'passed'"
-                            [class.bg-error]="status === 'failed'"
-                            class="mr-4 h-2 w-2 rounded-full shadow"
-                        ></div>
-                        <div
-                            class="w-1/2 flex-1 truncate font-mono"
-                            [innerHTML]="driver | driverFormat"
-                        ></div>
+                            content
+                            class="flex w-1/2 flex-1 items-center gap-3 rounded-xl p-2 px-3"
+                        >
+                            <div
+                                name="dot"
+                                [class.bg-warn]="!status"
+                                [class.bg-success]="status === 'passed'"
+                                [class.bg-error]="status === 'failed'"
+                                class="h-2 w-2 rounded-full shadow"
+                            ></div>
+                            <div
+                                class="w-1/2 flex-1 truncate font-mono text-xs"
+                                [innerHTML]="driver | driverFormat"
+                            ></div>
+                        </div>
                         <div
                             active
-                            class="bg-primary absolute inset-y-1 right-0 hidden w-2 rounded-l-lg"
+                            class="bg-base-300 absolute inset-y-1 right-0 hidden w-2 rounded-l-lg"
                         ></div>
                     </a>
                 } @empty {
@@ -107,8 +113,14 @@ import { TranslatePipe } from './translate.pipe';
             :host {
                 height: 100%;
             }
-            a.active [active] {
-                display: block !important;
+            a.active {
+                [content] {
+                    background: var(--primary);
+                    color: var(--primary-content);
+                }
+                [active] {
+                    display: block !important;
+                }
             }
         `,
     ],

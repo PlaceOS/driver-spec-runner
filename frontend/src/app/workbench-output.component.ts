@@ -6,11 +6,12 @@ import {
     signal,
     viewChild,
 } from '@angular/core';
-import { MatIconButton } from '@angular/material/button';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { MatTooltip } from '@angular/material/tooltip';
 import { AsyncHandler } from './common/async-handler.class';
 import { SpecBuildService } from './services/build.service';
 import { SpecTestService } from './services/test.service';
+import { IconComponent } from './ui/icon.component';
 import { TerminalComponent } from './ui/terminal.component';
 import { TranslatePipe } from './ui/translate.pipe';
 
@@ -22,38 +23,40 @@ import { TranslatePipe } from './ui/translate.pipe';
             [class.fullscreen]="fullscreen()"
             class="border-base-400 text-neutral-content bg-neutral absolute inset-0 flex flex-col border-t"
         >
-            <div class="flex w-full items-center space-x-2 p-2">
+            <div class="flex w-full items-center gap-2 p-2">
                 <button
-                    btn
+                    icon
+                    default
                     matRipple
+                    [matTooltip]="'TESTS_RUN' | translate"
                     [disabled]="running()"
                     (click)="runTestsWithFeedback()"
                 >
-                    {{ 'TESTS_RUN' | translate }}
+                    @if (running()) {
+                        <mat-spinner [diameter]="24" />
+                    } @else {
+                        <icon>play_arrow</icon>
+                    }
                 </button>
                 @if (running()) {
                     <button
-                        btn
+                        icon
+                        default
+                        error
                         matRipple
-                        class="inverse error"
+                        [matTooltip]="'TESTS_CANCEL' | translate"
                         (click)="cancelTests()"
                     >
-                        {{ 'TESTS_CANCEL' | translate }}
+                        <icon>stop</icon>
                     </button>
                 }
-                @if (running()) {
-                    <mat-spinner [diameter]="32" />
-                }
                 <div class="w-0 flex-1"></div>
-                <button
-                    mat-icon-button
-                    (click)="fullscreen.update((value) => !value)"
-                >
-                    <i class="material-icons">{{
+                <button icon (click)="fullscreen.update((value) => !value)">
+                    <icon>{{
                         fullscreen()
                             ? 'keyboard_arrow_down'
                             : 'keyboard_arrow_up'
-                    }}</i>
+                    }}</icon>
                 </button>
             </div>
             <div class="w-full flex-1 overflow-auto" #body>
@@ -88,9 +91,10 @@ import { TranslatePipe } from './ui/translate.pipe';
     ],
     imports: [
         MatProgressSpinner,
-        MatIconButton,
+        IconComponent,
         TerminalComponent,
         TranslatePipe,
+        MatTooltip,
     ],
 })
 export class WorkbenchOutputComponent extends AsyncHandler {

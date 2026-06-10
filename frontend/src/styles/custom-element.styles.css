@@ -136,3 +136,7 @@ sidebar {
         width: 20rem;
     }
 }
+
+#placeos .xterm-viewport {
+    background-color: #212121;
+}
