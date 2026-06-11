@@ -12,7 +12,7 @@ import {
     withComponentInputBinding,
     withHashLocation,
 } from '@angular/router';
-import { ServiceWorkerModule } from '@angular/service-worker';
+import { provideServiceWorker } from '@angular/service-worker';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { environment } from './environments/environment';
@@ -29,9 +29,10 @@ bootstrapApplication(AppComponent, {
             BrowserModule,
             BrowserAnimationsModule,
             MatSnackBarModule,
-            ServiceWorkerModule.register('ngsw-worker.js', {
-                enabled: environment.production,
-            }),
         ),
+        provideServiceWorker('ngsw-worker.js', {
+            enabled: environment.production,
+            registrationStrategy: 'registerWhenStable:30000',
+        }),
     ],
 }).catch((err) => console.error(err));
