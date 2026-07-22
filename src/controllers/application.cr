@@ -48,6 +48,16 @@ module PlaceOS::Drivers::Api
       response.headers["Date"] = HTTP.format_time(Time.utc)
     end
 
+    # Surface build-service failures with the upstream status code and body
+    # rather than letting the exception bubble up as an opaque
+    # `500 Internal Server Error` (which hides the real reason a driver did not
+    # build and makes the report look like a compile failure with no detail).
+    @[AC::Route::Exception(PlaceOS::Build::ClientError, status_code: HTTP::Status::BAD_GATEWAY)]
+    def build_service_error(error) : String
+      Log.error(exception: error) { "build service returned #{error.response.status_code}" }
+      "build service error (upstream status #{error.response.status_code}):\n#{error.body}"
+    end
+
     getter working_directory : String = Path["./repositories"].expand.to_s
 
     getter repository : String do
