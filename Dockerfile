@@ -40,11 +40,14 @@ COPY --from=frontend-build /frontend/dist/spec-runner-ui/browser /app/www
 ENV PATH="$PATH:/app/bin"
 
 # Build App
+# -Devloop=libevent: the native epoll event loop corrupts its timers under load
+# (crystal-lang/crystal#17058)
 RUN shards build \
       --error-trace \
       --release \
       --production \
       --ignore-crystal-version \
+      -Devloop=libevent \
     && \
     # Remove sources
     rm -r lib src
